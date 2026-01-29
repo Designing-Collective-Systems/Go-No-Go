@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Go/No-Go Task</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+
+<body class="min-h-screen font-sans ">
+
+    <div id="retry-modal" class="fixed inset-0 flex items-center justify-center z-50 bg-black/80 hidden">
+        <div class="p-8 rounded-xl max-w-md text-center border border-slate-600 shadow-2xl">
+            <h2 class="text-2xl font-bold text-red-400 mb-4">Try Again</h2>
+            <p id="retry-message" class="text-slate-200 text-lg mb-8">Error message here.</p>
+            <button onclick="retryCurrentTrial()"
+                class="text-white bg-blue-600 hover:bg-blue-500  px-8 py-3 rounded-lg font-bold text-lg transition-colors shadow-lg">
+                OK
+            </button>
+        </div>
+    </div>
+
+    <div id="menu-overlay" class="fixed inset-0 flex items-center justify-center z-20">
+        <div id="intro-practice" class="phase-container text-center max-w-2xl p-8">
+            <h1 class="text-3xl font-bold mb-6">Practice Session</h1>
+            <div class="space-y-4 mb-8">
+                <div class="p-6 mt-6 text-left border border-slate-700">
+                    <strong class="text-xl block mb-4 border-b border-slate-700 pb-2">Instructions:</strong>
+                    <div class="mb-6">
+                        <p class="mb-2 text-lg"><strong class="text-green-400">GO Trial:</strong></p>
+                        <ol class="pl-4 space-y-2">
+                            <li>1. Press & Hold the circle.</li>
+                            <li>2. When <strong>"GO"</strong> appears, release immediately.</li>
+                            <li>3. Press & Hold again at the new position.</li>
+                        </ol>
+                    </div>
+                    <div>
+                        <p class="mb-2 text-lg"><strong class="text-red-400">NO GO Trial:</strong></p>
+                        <ol class="pl-4 space-y-2">
+                            <li>1. Press & Hold the circle.</li>
+                            <li>2. When <strong>"NO GO"</strong> appears, keep holding.</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+            <button onclick="startPhase('practice')"
+                class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-lg text-xl transition-colors shadow-lg">
+                Start Practice
+            </button>
+        </div>
+
+        <div id="intro-real" class="phase-container text-center max-w-2xl p-8">
+            <h1 class="text-3xl font-bold mb-6">Go/No Go Task</h1>
+            <p class="mb-8">Great job. Now starting the real trials.</p>
+            <button onclick="startPhase('real')"
+                class="bg-green-600 hover:bg-green-500 text-white px-8 py-4 rounded-lg text-xl transition-colors shadow-lg">
+                Start Session
+            </button>
+        </div>
+
+        <div id="outro-complete" class="phase-container text-center max-w-2xl p-8">
+            <h1 class="text-3xl font-bold mb-6">Session Complete</h1>
+            <p class="mb-8">Thank you for participating!</p>
+            <div class="space-y-4">
+                <button onclick="downloadCSV()"
+                    class="bg-green-600 hover:bg-green-500 text-white px-8 py-4 rounded-lg text-xl transition-colors shadow-lg mr-4">
+                    Download Results
+                </button>
+                <button onclick="showResults()"
+                    class="bg-purple-600 hover:bg-purple-500 text-white px-8 py-4 rounded-lg text-xl transition-colors shadow-lg mr-4">
+                    See Results
+                </button>
+                <button onclick="resetApp()"
+                    class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-lg text-xl transition-colors shadow-lg">
+                    Start Over
+                </button>
+            </div>
+        </div>
+
+        <div id="results-view" class="phase-container text-center max-w-6xl p-8 overflow-auto max-h-screen">
+            <h1 class="text-3xl font-bold mb-6">Results</h1>
+            <div id="results-table-container" class="mb-8 overflow-x-auto">
+                <!-- Table will be inserted here -->
+            </div>
+            <button onclick="showMenuPhase('complete')"
+                class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-lg text-xl transition-colors shadow-lg">
+                Back
+            </button>
+        </div>
+    </div>
+
+    <div id="task-ui" class="hidden relative w-full h-screen">
+        <div id="task-header" class="absolute top-0 left-0 right-0 p-4 z-10 border-b ">
+            <div class="text-slate-300 text-center">
+            </div>
+            <div id="status-text" class="font-bold text-center text-2xl mt-4 min-h-[2rem]">
+                Hold Circle to Start
+            </div>
+            <div id="feedback-text" class="text-xl font-bold text-center mt-2 min-h-[1.75rem]"></div>
+        </div>
+
+        <div class="absolute inset-0 flex items-center justify-center overflow-hidden">
+            <button id="game-button"
+                class="w-32 h-32 rounded-full bg-blue-500 shadow-2xl absolute cursor-pointer focus:outline-none touch-none"
+                style="transform: translate(0px, 0px);">
+            </button>
+        </div>
+    </div>
+
+    <script src="../js/main.js"></script>
+</body>
+
+</html>

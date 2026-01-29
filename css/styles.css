@@ -1,0 +1,17 @@
+body {
+    user-select: none;
+    -webkit-user-select: none;
+    overflow: hidden;
+}
+
+#game-button {
+    transition: transform 0.3s ease-out, background-color 0.2s;
+}
+
+.phase-container {
+    display: none;
+}
+
+.phase-container.active {
+    display: block;
+}
