@@ -4,14 +4,45 @@ body {
     overflow: hidden;
 }
 
+
 #game-button {
     transition: transform 0.3s ease-out, background-color 0.2s;
 }
+
 
 .phase-container {
     display: none;
 }
 
+
 .phase-container.active {
     display: block;
+}
+
+
+@keyframes fadeIn {
+    0% {
+        opacity: 0;
+    }
+
+
+    100% {
+        opacity: 1;
+    }
+}
+
+
+.animate-fadeInDown {
+    animation: fadeIn 0.3s ease-out forwards;
+}
+
+
+/* Position stimulus text */
+#stimulus-text,
+#tutorial-stimulus-text {
+    transition: opacity 0.2s ease-out, transform 0.3s ease-out;
+    text-align: center;
+    left: 50%;
+    margin-left: -50vw;
+    width: 100vw;
 }

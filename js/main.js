@@ -2,27 +2,21 @@
 //                 TASK CONFIGURATION
 // =========================================================
 const CONFIG = {
-    // Set to 'moving' for changing positions or 'fixed' for center position
-    // circlePosition: 'moving', // Options: 'moving' or 'fixed'
     circlePosition: 'fixed',
-    
-    // Set to true to show feedback popups during practice/real trials, false to hide them
-    showFeedback: true, // Options: true or false
-    
-    // Set to true to show feedback popups during interactive instructions, false to hide them
-    showInstructionFeedback: true // Options: true or false
+    showFeedback: true,
+    showInstructionFeedback: true
 };
 
 // =========================================================
 //                 EDIT TRIAL SEQUENCES HERE
 // =========================================================
 const PRACTICE_SEQUENCE = [
-    { type: 'go', delay: 6000, xFactor: 0, yFactor: 0 },    // Center
-    { type: 'nogo', delay: 6000, xFactor: 0.5, yFactor: -0.5 }, // Top Right
-    { type: 'go', delay: 7000, xFactor: -0.5, yFactor: 0.5 },  // Bottom Left
-    { type: 'go', delay: 8000, xFactor: 0.8, yFactor: 0.8 },  // Bottom Right
-    { type: 'nogo', delay: 7000, xFactor: -0.8, yFactor: -0.2 }, // Mid Left
-    { type: 'go', delay: 6000, xFactor: 0, yFactor: 0.9 }   // Bottom Center
+    { type: 'go', delay: 6000, xFactor: 0, yFactor: 0 },
+    { type: 'nogo', delay: 6000, xFactor: 0.5, yFactor: -0.5 },
+    { type: 'go', delay: 7000, xFactor: -0.5, yFactor: 0.5 },
+    { type: 'go', delay: 8000, xFactor: 0.8, yFactor: 0.8 },
+    { type: 'nogo', delay: 7000, xFactor: -0.8, yFactor: -0.2 },
+    { type: 'go', delay: 6000, xFactor: 0, yFactor: 0.9 }
 ];
 
 const REAL_SEQUENCE = [
@@ -35,92 +29,69 @@ const REAL_SEQUENCE = [
 ];
 
 // ================= INTERACTIVE INSTRUCTION SEQUENCE =================
-
 const INSTRUCTION_STEPS = [
     {
-        id: 'go-intro',
+        id: 'task-overview',
         type: 'text',
-        title: 'Learning GO Trials',
-        message: 'Let\'s start with GO trials. You\'ll see a blue circle on the screen.',
-        buttonText: 'Continue'
+        title: 'How This Task Works',
+        message: 'In the Go/No-Go task, you\'ll press and hold a blue circle on the screen. Sometimes you\'ll need to lift your finger when you see <strong style="color: #10b981">"GO"</strong>, and other times you\'ll need to keep holding when you see <strong style="color: #ef4444">"NO GO"</strong>.',
+        buttonText: 'Got it, let\'s start!'
     },
     {
-        id: 'go-hold-1',
-        type: 'tutorial',
-        trialType: 'hold-only',
-        instruction: 'Place your index finger on the circle and hold it down.',
-        statusTextWaiting: 'Press & Hold',
-        statusTextHolding: 'Good! Keep holding...',
-        delay: 3000,
-        autoAdvance: true
+        id: 'go-explanation',
+        type: 'text',
+        title: 'Learning GO Trials',
+        message: 'You\'ll see a blue circle on the screen. When the word <strong style="color: #10b981">"GO"</strong> appears above the circle, lift your finger quickly and then press the circle again as fast as you can.',
+        buttonText: 'Ready to try it!'
     },
     {
         id: 'go-release-1',
         type: 'tutorial',
         trialType: 'go',
-        instruction: 'When you see "GO", lift your finger and press the circle again as fast as possible.',
-        statusTextWaiting: 'Press & Hold',
-        statusTextHolding: 'Hold...',
-        statusTextStimulus: 'GO',
-        statusTextReleased: 'Now hold again',
         delay: 4000
     },
     {
         id: 'go-release-2',
         type: 'tutorial',
         trialType: 'go',
-        instruction: 'Let\'s try that again. Remember: when you see "GO", release and press again quickly.',
-        statusTextWaiting: 'Press & Hold',
-        statusTextHolding: 'Hold...',
-        statusTextStimulus: 'GO',
-        statusTextReleased: 'Now hold again',
         delay: 5000
     },
     {
-        id: 'nogo-intro',
+        id: 'nogo-explanation',
         type: 'text',
         title: 'Learning NO GO Trials',
-        message: 'Great! Now let\'s learn about NO GO trials.',
-        buttonText: 'Continue'
+        message: 'Great job! Now when you see <strong style="color: #ef4444">"NO GO"</strong> appear above the circle, keep holding the circle. Do NOT lift your finger.',
+        buttonText: 'Ready to try it!'
     },
     {
         id: 'nogo-1',
         type: 'tutorial',
         trialType: 'nogo',
-        instruction: 'When you see "NO GO", keep holding the circle. Do NOT lift your finger.',
-        statusTextWaiting: 'Press & Hold',
-        statusTextHolding: 'Hold...',
-        statusTextStimulus: 'NO GO',
         delay: 4000
     },
     {
         id: 'nogo-2',
         type: 'tutorial',
         trialType: 'nogo',
-        instruction: 'Let\'s practice one more time. Remember: "NO GO" means keep holding.',
-        statusTextWaiting: 'Press & Hold',
-        statusTextHolding: 'Hold...',
-        statusTextStimulus: 'NO GO',
         delay: 5000
     },
     {
         id: 'complete',
         type: 'text',
-        title: 'Instructions Complete!',
-        message: 'Excellent work! You now understand both GO and NO GO trials. Ready to start practicing?',
+        title: 'Tutorial Complete!',
+        message: 'Excellent work! You now understand both <strong style="color: #10b981">GO</strong> and <strong style="color: #ef4444">NO GO</strong> trials.<br>Ready to start practicing?',
         buttonText: 'Start Practice'
     }
 ];
 
 // ================= STATE MANAGEMENT =================
-
 const STATE = {
     phase: 'welcome',
     isPractice: true,
     trialState: 'waiting',
     currentTrialIndex: 0,
-    allTrials: [], // Store ALL trials including practice
-    currentPhaseTrials: [], // Current phase trials
+    allTrials: [],
+    currentPhaseTrials: [],
     score: { correct: 0, total: 0 },
     isHolding: false,
     slipCount: 0,
@@ -130,8 +101,6 @@ const STATE = {
     lastInput: { x: 0, y: 0, screenW: 0, screenH: 0 },
     safeZoneDims: { w: 0, h: 0, top: 0 },
     sessionStartTime: null,
-    
-    // Tutorial state
     isInTutorial: false,
     tutorialStepIndex: 0,
     tutorialTrialComplete: false
@@ -143,7 +112,7 @@ let feedbackTimeout = null;
 let goTimeout = null;
 let noGoTimeout = null;
 
-// Elements
+// Elements - UPDATED: Removed status and feedback text elements
 const els = {
     menuOverlay: document.getElementById('menu-overlay'),
     welcomeScreen: document.getElementById('welcome-screen'),
@@ -155,25 +124,18 @@ const els = {
     resultsView: document.getElementById('results-view'),
     resultsTableContainer: document.getElementById('results-table-container'),
     taskUi: document.getElementById('task-ui'),
-    taskHeader: document.getElementById('task-header'),
-    statusText: document.getElementById('status-text'),
-    feedbackText: document.getElementById('feedback-text'),
+    stimulusText: document.getElementById('stimulus-text'),
     gameButton: document.getElementById('game-button'),
     retryModal: document.getElementById('retry-modal'),
     retryMessage: document.getElementById('retry-message'),
-    
-    // Tutorial elements
     tutorialUi: document.getElementById('tutorial-ui'),
-    tutorialHeader: document.getElementById('tutorial-header'),
-    tutorialInstructionText: document.getElementById('tutorial-instruction-text'),
-    tutorialStatusText: document.getElementById('tutorial-status-text'),
+    tutorialStimulusText: document.getElementById('tutorial-stimulus-text'),
     tutorialButton: document.getElementById('tutorial-button'),
     tutorialContinueContainer: document.getElementById('tutorial-continue-container'),
     tutorialContinueBtn: document.getElementById('tutorial-continue-btn')
 };
 
 // ================= INTERACTIVE INSTRUCTIONS =================
-
 function startInteractiveInstructions() {
     STATE.isInTutorial = true;
     STATE.tutorialStepIndex = 0;
@@ -182,14 +144,13 @@ function startInteractiveInstructions() {
 
 function showInstructionStep() {
     const step = INSTRUCTION_STEPS[STATE.tutorialStepIndex];
-    
+
     if (step.type === 'text') {
-        // Show text instruction in overlay
         els.menuOverlay.classList.remove('hidden');
         els.tutorialUi.classList.add('hidden');
         document.querySelectorAll('.phase-container').forEach(el => el.classList.remove('active'));
         els.instructionContainer.classList.add('active');
-        
+
         els.instructionContent.innerHTML = `
             <h2 class="text-3xl font-bold mb-6">${step.title}</h2>
             <p class="text-lg mb-8">${step.message}</p>
@@ -199,35 +160,25 @@ function showInstructionStep() {
             </button>
         `;
     } else if (step.type === 'tutorial') {
-        // Show interactive tutorial
         els.menuOverlay.classList.add('hidden');
         els.tutorialUi.classList.remove('hidden');
-        
-        // Reset tutorial state
+
         STATE.tutorialTrialComplete = false;
         STATE.isHolding = false;
         STATE.trialState = 'waiting';
-        
-        // Set instruction text
-        els.tutorialInstructionText.innerText = step.instruction;
-        els.tutorialStatusText.innerText = step.statusTextWaiting || 'Press & Hold';
-        
-        // Hide continue button initially
+
+        els.tutorialStimulusText.innerText = '';
         els.tutorialContinueContainer.classList.add('hidden');
-        
-        // Center the button
+
         updateTutorialButtonPosition(0, 0);
-        
-        // Set up the tutorial trial
         setupTutorialTrial(step);
     }
 }
 
 function nextInstructionStep() {
     STATE.tutorialStepIndex++;
-    
+
     if (STATE.tutorialStepIndex >= INSTRUCTION_STEPS.length) {
-        // Instructions complete, show practice intro
         STATE.isInTutorial = false;
         els.tutorialUi.classList.add('hidden');
         showMenuPhase('practice-intro');
@@ -238,26 +189,23 @@ function nextInstructionStep() {
 
 function setupTutorialTrial(step) {
     clearAllTimeouts();
-    
+
     const tutorialButton = els.tutorialButton;
-    
-    // Remove old listeners by cloning
     const newButton = tutorialButton.cloneNode(true);
     tutorialButton.parentNode.replaceChild(newButton, tutorialButton);
     els.tutorialButton = newButton;
-    
-    // Add new listeners
+
     const start = (e) => {
         if (e.type === 'mousedown' && e.button !== 0) return;
         if (e.type === 'touchstart') e.preventDefault();
         handleTutorialPressStart(step);
     };
-    
+
     const end = (e) => {
         if (e.type === 'touchend') e.preventDefault();
         handleTutorialPressEnd(step);
     };
-    
+
     newButton.addEventListener('mousedown', start);
     newButton.addEventListener('touchstart', start, { passive: false });
     newButton.addEventListener('mouseup', end);
@@ -267,60 +215,51 @@ function setupTutorialTrial(step) {
 
 function handleTutorialPressStart(step) {
     if (STATE.tutorialTrialComplete) return;
-    
+
     if (STATE.trialState === 'waiting') {
         STATE.isHolding = true;
         STATE.trialState = 'holding';
-        els.tutorialStatusText.innerText = step.statusTextHolding || 'Hold...';
-        
-        // Update button appearance
-        updateTutorialButtonAppearance();
-        
-        if (step.trialType === 'hold-only') {
-            // For hold-only, just wait and show continue button
-            stimulusTimeout = setTimeout(() => {
-                els.tutorialStatusText.innerText = 'Perfect!';
-                STATE.tutorialTrialComplete = true;
-                els.tutorialContinueContainer.classList.remove('hidden');
-            }, step.delay);
-        } else {
-            // For go/nogo trials, show stimulus
-            stimulusTimeout = setTimeout(() => {
-                STATE.stimulusOnsetTime = Date.now();
-                STATE.trialState = 'stimulus';
-                els.tutorialStatusText.innerText = step.statusTextStimulus;
-                STATE.noGoSlipStartTime = null;
-                
-                if (step.trialType === 'go') {
-                    // Wait for release
-                    goTimeout = setTimeout(() => {
-                        if (!STATE.tutorialTrialComplete) {
-                            showTutorialRetry("Too slow! Please release when you see GO.");
+        updateTutorialUI();
+
+        stimulusTimeout = setTimeout(() => {
+            STATE.stimulusOnsetTime = Date.now();
+            STATE.trialState = 'stimulus';
+            updateTutorialUI();
+            STATE.noGoSlipStartTime = null;
+
+            if (step.trialType === 'go') {
+                goTimeout = setTimeout(() => {
+                    if (!STATE.tutorialTrialComplete) {
+                        showTutorialRetry("Too slow! Please lift your finger when you see GO.");
+                    }
+                }, 5000);
+            } else if (step.trialType === 'nogo') {
+                noGoTimeout = setTimeout(() => {
+                    if (STATE.isHolding) {
+                        // Success! They held - show feedback ONLY in tutorial
+                        if (CONFIG.showInstructionFeedback) {
+                            els.tutorialStimulusText.innerText = 'Perfect!';
+                            els.tutorialStimulusText.style.color = '#000000'; // BLACK
                         }
-                    }, 5000);
-                } else if (step.trialType === 'nogo') {
-                    // Wait to see if they hold
-                    noGoTimeout = setTimeout(() => {
-                        if (STATE.isHolding) {
-                            // Success! They held
-                            els.tutorialStatusText.innerText = 'Perfect! You held it.';
-                            STATE.tutorialTrialComplete = true;
-                            els.tutorialContinueContainer.classList.remove('hidden');
-                        } else {
-                            // They released during NO GO
-                            showTutorialRetry("You released! Remember: NO GO means keep holding.");
-                        }
-                    }, 5000);
-                }
-            }, step.delay);
-        }
+                        STATE.tutorialTrialComplete = true;
+                        els.tutorialContinueContainer.classList.remove('hidden');
+                    } else {
+                        showTutorialRetry("You lifted your finger! Remember: NO GO means keep holding.");
+                    }
+                }, 5000);
+            }
+        }, step.delay);
     } else if (STATE.trialState === 'released' && step.trialType === 'go') {
-        // They pressed again after releasing
         STATE.isHolding = true;
-        els.tutorialStatusText.innerText = 'Excellent!';
+        // Show feedback ONLY in tutorial
+        if (CONFIG.showInstructionFeedback) {
+            els.tutorialStimulusText.innerText = 'Excellent!';
+            els.tutorialStimulusText.style.color = '#000000'; // BLACK
+            els.tutorialStimulusText.classList.remove('opacity-0');
+        }
         STATE.tutorialTrialComplete = true;
         updateTutorialButtonAppearance();
-        
+
         clearTimeout(goTimeout);
         els.tutorialContinueContainer.classList.remove('hidden');
     }
@@ -328,72 +267,97 @@ function handleTutorialPressStart(step) {
 
 function handleTutorialPressEnd(step) {
     STATE.isHolding = false;
-    
-    // Don't show errors if trial is already complete
+
     if (STATE.tutorialTrialComplete) {
         updateTutorialButtonAppearance();
         return;
     }
-    
+
     if (STATE.trialState === 'holding') {
-        // Released too early
         clearTimeout(stimulusTimeout);
-        showTutorialRetry("You released too early. Please keep holding until you see the instruction.");
+        showTutorialRetry("You lifted your finger before seeing the instruction. Please keep holding until you see GO or NO GO. Let's try again!");
     } else if (STATE.trialState === 'stimulus') {
         if (step.trialType === 'go') {
-            // Correct release for GO
             clearTimeout(goTimeout);
             STATE.trialState = 'released';
-            els.tutorialStatusText.innerText = step.statusTextReleased || 'Now hold again';
+            updateTutorialUI();
             updateTutorialButtonAppearance();
         } else if (step.trialType === 'nogo') {
-            // Incorrect release for NO GO
             STATE.noGoSlipStartTime = Date.now();
             clearTimeout(noGoTimeout);
-            showTutorialRetry("You released! Remember: NO GO means keep holding.");
+            showTutorialRetry("You lifted your finger! Remember: NO GO means keep holding. Let's try again!");
         }
     }
-    
+
     updateTutorialButtonAppearance();
+}
+
+function updateTutorialUI() {
+    const { trialState } = STATE;
+    const step = INSTRUCTION_STEPS[STATE.tutorialStepIndex];
+    let text = '';
+    let color = '#000000'; // Default BLACK
+
+    if (trialState === 'waiting') {
+        text = 'Press & Hold';
+        color = '#000000'; // BLACK
+    } else if (trialState === 'holding') {
+        text = 'Hold...';
+        color = '#000000'; // BLACK
+    } else if (trialState === 'stimulus') {
+        if (step.trialType === 'go') {
+            text = 'GO';
+            color = '#10b981'; // GREEN
+        } else {
+            text = 'NO GO';
+            color = '#ef4444'; // RED
+        }
+    } else if (trialState === 'released') {
+        text = 'Put your finger down';
+        color = '#10b981'; // GREEN
+    }
+
+    els.tutorialStimulusText.innerText = text;
+    els.tutorialStimulusText.style.color = color;
+
+    if (text) {
+        els.tutorialStimulusText.classList.remove('opacity-0');
+        els.tutorialStimulusText.classList.add('animate-fadeInDown');
+    } else {
+        els.tutorialStimulusText.classList.add('opacity-0');
+        els.tutorialStimulusText.classList.remove('animate-fadeInDown');
+    }
 }
 
 function showTutorialRetry(message) {
     if (!CONFIG.showInstructionFeedback) {
-        // Silently retry
-        const step = INSTRUCTION_STEPS[STATE.tutorialStepIndex];
-        STATE.tutorialTrialComplete = false;
-        STATE.isHolding = false;
-        STATE.trialState = 'waiting';
-        setupTutorialTrial(step);
-        els.tutorialStatusText.innerText = step.statusTextWaiting || 'Press & Hold';
+        retryTutorialStep();
         return;
     }
-    
-    // Show retry modal
+
     clearAllTimeouts();
     els.retryMessage.innerText = message;
     els.retryModal.classList.remove('hidden');
-    
-    // Override retry button for tutorial
-    const retryBtn = els.retryModal.querySelector('button');
-    retryBtn.onclick = () => {
-        els.retryModal.classList.add('hidden');
-        const step = INSTRUCTION_STEPS[STATE.tutorialStepIndex];
-        STATE.tutorialTrialComplete = false;
-        STATE.isHolding = false;
-        STATE.trialState = 'waiting';
-        setupTutorialTrial(step);
-        els.tutorialStatusText.innerText = step.statusTextWaiting || 'Press & Hold';
-    };
+}
+
+function retryTutorialStep() {
+    els.retryModal.classList.add('hidden');
+    const step = INSTRUCTION_STEPS[STATE.tutorialStepIndex];
+    STATE.tutorialTrialComplete = false;
+    STATE.isHolding = false;
+    STATE.trialState = 'waiting';
+    els.tutorialStimulusText.innerText = '';
+    els.tutorialStimulusText.classList.add('opacity-0');
+    els.tutorialStimulusText.classList.remove('animate-fadeInDown');
+    setupTutorialTrial(step);
+    updateTutorialUI();
 }
 
 function updateTutorialButtonPosition(xFactor, yFactor) {
-    const headerRect = els.tutorialHeader.getBoundingClientRect();
-    const headerBottom = headerRect.bottom;
     const btnRadius = 64;
     const padding = 20;
 
-    const minAbsY = headerBottom + btnRadius + padding;
+    const minAbsY = btnRadius + padding;
     const maxAbsY = window.innerHeight - btnRadius - padding;
     const availableHeight = maxAbsY - minAbsY;
 
@@ -416,12 +380,13 @@ function updateTutorialButtonPosition(xFactor, yFactor) {
     const translateY = targetAbsY - screenCenterY;
 
     els.tutorialButton.style.transform = `translate(${translateX}px, ${translateY}px)`;
+    els.tutorialStimulusText.style.transform = `translate(${translateX}px, ${translateY - 264}px)`;
 }
 
 function updateTutorialButtonAppearance() {
     const btn = els.tutorialButton;
     btn.className = `w-32 h-32 rounded-full bg-blue-500 shadow-2xl absolute cursor-pointer focus:outline-none touch-none transition-transform duration-300 ease-out`;
-    
+
     if (STATE.trialState === 'waiting') {
         btn.classList.add('hover:scale-105', 'active:scale-95');
     } else if (STATE.trialState === 'holding') {
@@ -431,20 +396,24 @@ function updateTutorialButtonAppearance() {
     }
 }
 
-// Set up tutorial continue button
 els.tutorialContinueBtn.addEventListener('click', () => {
     nextInstructionStep();
 });
 
-// ================= METRICS LOGGING =================
+window.retryCurrentTrial = function() {
+    if (STATE.isInTutorial) {
+        retryTutorialStep();
+    } else {
+        retryTaskTrial();
+    }
+};
 
+// ================= METRICS LOGGING =================
 function getSafeZone() {
-    const headerRect = els.taskHeader.getBoundingClientRect();
-    const headerBottom = headerRect.bottom;
     return {
         width: window.innerWidth,
-        height: window.innerHeight - headerBottom,
-        topOffset: headerBottom
+        height: window.innerHeight,
+        topOffset: 0
     };
 }
 
@@ -458,10 +427,8 @@ function logMetric(data) {
         touchX: STATE.lastInput.x,
         touchY: STATE.lastInput.y
     };
-    
-    // Add to current phase trials
+
     STATE.currentPhaseTrials.push(record);
-    // Add to all trials
     STATE.allTrials.push(record);
 
     const style = record.isCorrect ? 'color: #4ade80; font-weight: bold' : 'color: #f87171; font-weight: bold';
@@ -473,7 +440,6 @@ function logMetric(data) {
 }
 
 // ================= CSV EXPORT =================
-
 function downloadCSV() {
     const headers = [
         'Phase',
@@ -570,7 +536,6 @@ function showResults() {
 }
 
 // ================= FLOW CONTROL =================
-
 function init() {
     showMenuPhase('welcome');
     setupButtonListeners();
@@ -589,7 +554,6 @@ function resetApp() {
 }
 
 function startPhase(phaseName) {
-    // Reset current phase trials but keep all trials
     STATE.currentPhaseTrials = [];
     STATE.score = { correct: 0, total: 0 };
     STATE.slipCount = 0;
@@ -597,7 +561,6 @@ function startPhase(phaseName) {
     STATE.isHolding = false;
     STATE.currentTrialIndex = 0;
     STATE.sessionStartTime = new Date().toISOString();
-    els.feedbackText.innerText = '';
 
     if (phaseName === 'practice') {
         STATE.phase = 'practice';
@@ -649,10 +612,9 @@ function showMenuPhase(id) {
 }
 
 // ================= RETRY MODAL LOGIC =================
-
 function showRetryModal(msg) {
     if (!CONFIG.showFeedback) {
-        retryCurrentTrial();
+        retryTaskTrial();
         return;
     }
 
@@ -661,16 +623,17 @@ function showRetryModal(msg) {
     els.retryModal.classList.remove('hidden');
 }
 
-function retryCurrentTrial() {
+function retryTaskTrial() {
     els.retryModal.classList.add('hidden');
-    
-    // Reset all trial state
+
     STATE.isHolding = false;
     STATE.currentTrialConfig = null;
     STATE.currentRT = null;
     STATE.noGoSlipStartTime = null;
-    els.feedbackText.innerText = '';
-    
+    els.stimulusText.innerText = '';
+    els.stimulusText.classList.add('opacity-0');
+    els.stimulusText.classList.remove('animate-fadeInDown');
+
     setTrialState('waiting');
 
     const sequence = getCurrentSequence();
@@ -686,7 +649,6 @@ function retryCurrentTrial() {
 }
 
 // ================= TASK LOGIC =================
-
 function handlePressStart() {
     if (STATE.trialState === 'feedback') return;
 
@@ -747,7 +709,7 @@ function handlePressEnd() {
             rt: null
         });
 
-        showRetryModal("You released too early, please try again.");
+        showRetryModal("You lifted your finger before seeing the instruction. Please keep holding until you see GO or NO GO. Let's try again!");
 
     } else if (STATE.trialState === 'stimulus') {
         if (STATE.currentTrialConfig.type === 'go') {
@@ -774,7 +736,7 @@ function runStimulusLogic() {
                 errorCategory: 'Late Release',
                 rt: null
             });
-            showRetryModal("Too slow! Please try again.");
+            showRetryModal("Too slow! Please lift your finger when you see GO.");
         }, 5000);
     } else {
         noGoTimeout = setTimeout(() => {
@@ -818,7 +780,7 @@ function evaluateNoGoTrial(finalSuccess) {
             errorCategory: 'Failed Inhibition',
             rt: STATE.noGoSlipStartTime ? (STATE.noGoSlipStartTime - STATE.stimulusOnsetTime) : null
         });
-        showRetryModal("You released. Please try again.");
+        showRetryModal("You lifted your finger! Remember: NO GO means keep holding. Let's try again!");
     }
 }
 
@@ -834,7 +796,9 @@ function advanceTrial() {
             STATE.currentTrialConfig = null;
             STATE.currentRT = null;
             STATE.noGoSlipStartTime = null;
-            els.feedbackText.innerText = '';
+            els.stimulusText.innerText = '';
+            els.stimulusText.classList.add('opacity-0');
+            els.stimulusText.classList.remove('animate-fadeInDown');
 
             const nextConfig = sequence[STATE.currentTrialIndex];
             if (nextConfig) {
@@ -866,14 +830,11 @@ function onComplete() {
 }
 
 // ================= POSITIONING LOGIC =================
-
 function updateButtonPosition(xFactor, yFactor) {
-    const headerRect = els.taskHeader.getBoundingClientRect();
-    const headerBottom = headerRect.bottom;
     const btnRadius = 64;
     const padding = 20;
 
-    const minAbsY = headerBottom + btnRadius + padding;
+    const minAbsY = btnRadius + padding;
     const maxAbsY = window.innerHeight - btnRadius - padding;
     const availableHeight = maxAbsY - minAbsY;
 
@@ -896,6 +857,7 @@ function updateButtonPosition(xFactor, yFactor) {
     const translateY = targetAbsY - screenCenterY;
 
     els.gameButton.style.transform = `translate(${translateX}px, ${translateY}px)`;
+    els.stimulusText.style.transform = `translate(${translateX}px, ${translateY - 264}px)`;
 }
 
 function setTrialState(newState) {
@@ -910,16 +872,45 @@ function clearAllTimeouts() {
     if (noGoTimeout) clearTimeout(noGoTimeout);
 }
 
+// ================= UI UPDATE - UPDATED WITH COLOR LOGIC =================
 function updateUI() {
     const { trialState, currentTrialConfig } = STATE;
     const btn = els.gameButton;
 
     let text = '';
-    if (trialState === 'waiting') text = 'Press & Hold';
-    else if (trialState === 'holding') text = 'Hold...';
-    else if (trialState === 'stimulus') text = currentTrialConfig.type === 'go' ? 'GO' : 'NO GO';
-    else if (trialState === 'released') text = 'Now hold again';
-    els.statusText.innerText = text;
+    let color = '#000000'; // Default BLACK
+
+    if (trialState === 'waiting') {
+        text = 'Press & Hold';
+        color = '#000000'; // BLACK
+    } else if (trialState === 'holding') {
+        text = 'Hold...';
+        color = '#000000'; // BLACK
+    } else if (trialState === 'stimulus') {
+        if (currentTrialConfig.type === 'go') {
+            text = 'GO';
+            color = '#10b981'; // GREEN
+        } else {
+            text = 'NO GO';
+            color = '#ef4444'; // RED
+        }
+    } else if (trialState === 'released') {
+        text = 'Put your finger down';
+        color = '#10b981'; // GREEN
+    } else if (trialState === 'feedback') {
+        text = '';  // No feedback in practice/real sessions
+    }
+
+    els.stimulusText.innerText = text;
+    els.stimulusText.style.color = color;
+
+    if (text) {
+        els.stimulusText.classList.remove('opacity-0');
+        els.stimulusText.classList.add('animate-fadeInDown');
+    } else {
+        els.stimulusText.classList.add('opacity-0');
+        els.stimulusText.classList.remove('animate-fadeInDown');
+    }
 
     btn.className = `w-32 h-32 rounded-full bg-blue-500 shadow-2xl absolute cursor-pointer focus:outline-none touch-none transition-transform duration-300 ease-out`;
     if (trialState === 'waiting') btn.classList.add('hover:scale-105', 'active:scale-95');
