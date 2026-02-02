@@ -7,6 +7,7 @@ const CONFIG = {
     showInstructionFeedback: true
 };
 
+
 // =========================================================
 //                 EDIT TRIAL SEQUENCES HERE
 // =========================================================
@@ -19,6 +20,7 @@ const PRACTICE_SEQUENCE = [
     { type: 'go', delay: 6000, xFactor: 0, yFactor: 0.9 }
 ];
 
+
 const REAL_SEQUENCE = [
     { type: 'go', delay: 6000, xFactor: 0, yFactor: 0 },
     { type: 'go', delay: 7000, xFactor: 0.4, yFactor: 0.4 },
@@ -27,6 +29,7 @@ const REAL_SEQUENCE = [
     { type: 'nogo', delay: 6000, xFactor: -0.7, yFactor: 0.7 },
     { type: 'go', delay: 8000, xFactor: 0.2, yFactor: -0.2 }
 ];
+
 
 // ================= INTERACTIVE INSTRUCTION SEQUENCE =================
 const INSTRUCTION_STEPS = [
@@ -84,6 +87,7 @@ const INSTRUCTION_STEPS = [
     }
 ];
 
+
 // ================= STATE MANAGEMENT =================
 const STATE = {
     phase: 'welcome',
@@ -106,11 +110,13 @@ const STATE = {
     tutorialTrialComplete: false
 };
 
+
 // Timers
 let stimulusTimeout = null;
 let feedbackTimeout = null;
 let goTimeout = null;
 let noGoTimeout = null;
+
 
 // Elements - UPDATED: Removed status and feedback text elements
 const els = {
@@ -135,6 +141,7 @@ const els = {
     tutorialContinueBtn: document.getElementById('tutorial-continue-btn')
 };
 
+
 // ================= INTERACTIVE INSTRUCTIONS =================
 function startInteractiveInstructions() {
     STATE.isInTutorial = true;
@@ -142,14 +149,22 @@ function startInteractiveInstructions() {
     showInstructionStep();
 }
 
+function skipTutorial() {
+    STATE.isInTutorial = false;
+    showMenuPhase('practice-intro');
+}
+
+
 function showInstructionStep() {
     const step = INSTRUCTION_STEPS[STATE.tutorialStepIndex];
+
 
     if (step.type === 'text') {
         els.menuOverlay.classList.remove('hidden');
         els.tutorialUi.classList.add('hidden');
         document.querySelectorAll('.phase-container').forEach(el => el.classList.remove('active'));
         els.instructionContainer.classList.add('active');
+
 
         els.instructionContent.innerHTML = `
             <h2 class="text-3xl font-bold mb-6">${step.title}</h2>
@@ -163,20 +178,25 @@ function showInstructionStep() {
         els.menuOverlay.classList.add('hidden');
         els.tutorialUi.classList.remove('hidden');
 
+
         STATE.tutorialTrialComplete = false;
         STATE.isHolding = false;
         STATE.trialState = 'waiting';
 
+
         els.tutorialStimulusText.innerText = '';
         els.tutorialContinueContainer.classList.add('hidden');
+
 
         updateTutorialButtonPosition(0, 0);
         setupTutorialTrial(step);
     }
 }
 
+
 function nextInstructionStep() {
     STATE.tutorialStepIndex++;
+
 
     if (STATE.tutorialStepIndex >= INSTRUCTION_STEPS.length) {
         STATE.isInTutorial = false;
@@ -187,13 +207,16 @@ function nextInstructionStep() {
     }
 }
 
+
 function setupTutorialTrial(step) {
     clearAllTimeouts();
+
 
     const tutorialButton = els.tutorialButton;
     const newButton = tutorialButton.cloneNode(true);
     tutorialButton.parentNode.replaceChild(newButton, tutorialButton);
     els.tutorialButton = newButton;
+
 
     const start = (e) => {
         if (e.type === 'mousedown' && e.button !== 0) return;
@@ -201,10 +224,12 @@ function setupTutorialTrial(step) {
         handleTutorialPressStart(step);
     };
 
+
     const end = (e) => {
         if (e.type === 'touchend') e.preventDefault();
         handleTutorialPressEnd(step);
     };
+
 
     newButton.addEventListener('mousedown', start);
     newButton.addEventListener('touchstart', start, { passive: false });
@@ -213,19 +238,23 @@ function setupTutorialTrial(step) {
     newButton.addEventListener('mouseleave', () => { if (STATE.isHolding) end(); });
 }
 
+
 function handleTutorialPressStart(step) {
     if (STATE.tutorialTrialComplete) return;
+
 
     if (STATE.trialState === 'waiting') {
         STATE.isHolding = true;
         STATE.trialState = 'holding';
         updateTutorialUI();
 
+
         stimulusTimeout = setTimeout(() => {
             STATE.stimulusOnsetTime = Date.now();
             STATE.trialState = 'stimulus';
             updateTutorialUI();
             STATE.noGoSlipStartTime = null;
+
 
             if (step.trialType === 'go') {
                 goTimeout = setTimeout(() => {
@@ -260,18 +289,22 @@ function handleTutorialPressStart(step) {
         STATE.tutorialTrialComplete = true;
         updateTutorialButtonAppearance();
 
+
         clearTimeout(goTimeout);
         els.tutorialContinueContainer.classList.remove('hidden');
     }
 }
 
+
 function handleTutorialPressEnd(step) {
     STATE.isHolding = false;
+
 
     if (STATE.tutorialTrialComplete) {
         updateTutorialButtonAppearance();
         return;
     }
+
 
     if (STATE.trialState === 'holding') {
         clearTimeout(stimulusTimeout);
@@ -289,14 +322,17 @@ function handleTutorialPressEnd(step) {
         }
     }
 
+
     updateTutorialButtonAppearance();
 }
+
 
 function updateTutorialUI() {
     const { trialState } = STATE;
     const step = INSTRUCTION_STEPS[STATE.tutorialStepIndex];
     let text = '';
     let color = '#000000'; // Default BLACK
+
 
     if (trialState === 'waiting') {
         text = 'Press & Hold';
@@ -317,8 +353,10 @@ function updateTutorialUI() {
         color = '#10b981'; // GREEN
     }
 
+
     els.tutorialStimulusText.innerText = text;
     els.tutorialStimulusText.style.color = color;
+
 
     if (text) {
         els.tutorialStimulusText.classList.remove('opacity-0');
@@ -329,16 +367,19 @@ function updateTutorialUI() {
     }
 }
 
+
 function showTutorialRetry(message) {
     if (!CONFIG.showInstructionFeedback) {
         retryTutorialStep();
         return;
     }
 
+
     clearAllTimeouts();
     els.retryMessage.innerText = message;
     els.retryModal.classList.remove('hidden');
 }
+
 
 function retryTutorialStep() {
     els.retryModal.classList.add('hidden');
@@ -353,39 +394,50 @@ function retryTutorialStep() {
     updateTutorialUI();
 }
 
+
 function updateTutorialButtonPosition(xFactor, yFactor) {
     const btnRadius = 64;
     const padding = 20;
+
 
     const minAbsY = btnRadius + padding;
     const maxAbsY = window.innerHeight - btnRadius - padding;
     const availableHeight = maxAbsY - minAbsY;
 
+
     const minAbsX = btnRadius + padding;
     const maxAbsX = window.innerWidth - btnRadius - padding;
     const availableWidth = maxAbsX - minAbsX;
 
+
     if (availableHeight <= 0 || availableWidth <= 0) return;
+
 
     const normX = (xFactor + 1) / 2;
     const normY = (yFactor + 1) / 2;
 
+
     const targetAbsX = minAbsX + (normX * availableWidth);
     const targetAbsY = minAbsY + (normY * availableHeight);
+
 
     const screenCenterX = window.innerWidth / 2;
     const screenCenterY = window.innerHeight / 2;
 
+
     const translateX = targetAbsX - screenCenterX;
     const translateY = targetAbsY - screenCenterY;
+
 
     els.tutorialButton.style.transform = `translate(${translateX}px, ${translateY}px)`;
     els.tutorialStimulusText.style.transform = `translate(${translateX}px, ${translateY - 264}px)`;
 }
 
+
 function updateTutorialButtonAppearance() {
     const btn = els.tutorialButton;
     btn.className = `w-32 h-32 rounded-full bg-blue-500 shadow-2xl absolute cursor-pointer focus:outline-none touch-none transition-transform duration-300 ease-out`;
+
 
     if (STATE.trialState === 'waiting') {
         btn.classList.add('hover:scale-105', 'active:scale-95');
@@ -396,9 +448,11 @@ function updateTutorialButtonAppearance() {
     }
 }
 
+
 els.tutorialContinueBtn.addEventListener('click', () => {
     nextInstructionStep();
 });
+
 
 window.retryCurrentTrial = function() {
     if (STATE.isInTutorial) {
@@ -408,7 +462,9 @@ window.retryCurrentTrial = function() {
     }
 };
 
+
 // ================= METRICS LOGGING =================
+// FIXED: trial_index now uses currentTrialIndex instead of incrementing on every log
 function getSafeZone() {
     return {
         width: window.innerWidth,
@@ -417,19 +473,22 @@ function getSafeZone() {
     };
 }
 
+
 function logMetric(data) {
     const safe = getSafeZone();
     const record = {
         phase: STATE.isPractice ? 'Practice' : 'Real Study',
-        trialIndex: STATE.currentPhaseTrials.length + 1,
+        trialIndex: STATE.currentTrialIndex + 1,  // FIXED: Now properly reflects current trial
         timestamp: new Date().toISOString(),
         ...data,
         touchX: STATE.lastInput.x,
         touchY: STATE.lastInput.y
     };
 
+
     STATE.currentPhaseTrials.push(record);
     STATE.allTrials.push(record);
+
 
     const style = record.isCorrect ? 'color: #4ade80; font-weight: bold' : 'color: #f87171; font-weight: bold';
     console.group(`%c Event: ${record.resultType || 'Info'}`, style);
@@ -438,6 +497,7 @@ function logMetric(data) {
     console.log(`Error: ${record.errorCategory}`);
     console.groupEnd();
 }
+
 
 // ================= CSV EXPORT =================
 function downloadCSV() {
@@ -455,6 +515,7 @@ function downloadCSV() {
         'Timestamp'
     ];
 
+
     const rows = STATE.allTrials.map(trial => [
         trial.phase,
         trial.trialIndex,
@@ -469,6 +530,7 @@ function downloadCSV() {
         trial.timestamp
     ]);
 
+
     let csvContent = headers.join(',') + '\n';
     rows.forEach(row => {
         csvContent += row.map(cell => {
@@ -479,6 +541,7 @@ function downloadCSV() {
             return cellStr;
         }).join(',') + '\n';
     });
+
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -491,6 +554,7 @@ function downloadCSV() {
     link.click();
     document.body.removeChild(link);
 }
+
 
 function showResults() {
     const headers = [
@@ -507,11 +571,13 @@ function showResults() {
         'Timestamp'
     ];
 
+
     let tableHTML = '<table class="w-full border-collapse border border-slate-600 text-left"><thead><tr>';
     headers.forEach(header => {
         tableHTML += `<th class="border border-slate-600 px-4 py-2">${header}</th>`;
     });
     tableHTML += '</tr></thead><tbody>';
+
 
     STATE.allTrials.forEach(trial => {
         const rowClass = trial.isCorrect ? 'bg-green-900/20' : 'bg-red-900/20';
@@ -530,10 +596,29 @@ function showResults() {
         tableHTML += '</tr>';
     });
 
+
     tableHTML += '</tbody></table>';
     els.resultsTableContainer.innerHTML = tableHTML;
     showMenuPhase('results');
 }
+
+
+// ================= DASHBOARD =================
+function showDashboard() {
+    // Open results dashboard in a new window/tab
+    const dashboardWindow = window.open('dashboard.html', '_blank');
+    
+    // Pass data to the dashboard
+    if (dashboardWindow) {
+        dashboardWindow.addEventListener('load', () => {
+            dashboardWindow.postMessage({ 
+                type: 'GO_NOGO_DATA', 
+                data: STATE.allTrials 
+            }, '*');
+        });
+    }
+}
+
 
 // ================= FLOW CONTROL =================
 function init() {
@@ -542,6 +627,7 @@ function init() {
     console.log("App Initialized.");
     console.log("Configuration:", CONFIG);
 }
+
 
 function resetApp() {
     STATE.allTrials = [];
@@ -553,6 +639,7 @@ function resetApp() {
     showMenuPhase('welcome');
 }
 
+
 function startPhase(phaseName) {
     STATE.currentPhaseTrials = [];
     STATE.score = { correct: 0, total: 0 };
@@ -561,6 +648,7 @@ function startPhase(phaseName) {
     STATE.isHolding = false;
     STATE.currentTrialIndex = 0;
     STATE.sessionStartTime = new Date().toISOString();
+
 
     if (phaseName === 'practice') {
         STATE.phase = 'practice';
@@ -574,6 +662,7 @@ function startPhase(phaseName) {
         els.taskUi.classList.remove('hidden');
     }
 
+
     const sequence = getCurrentSequence();
     if (CONFIG.circlePosition === 'fixed') {
         updateButtonPosition(0, 0);
@@ -586,9 +675,11 @@ function startPhase(phaseName) {
     updateUI();
 }
 
+
 function getCurrentSequence() {
     return STATE.isPractice ? PRACTICE_SEQUENCE : REAL_SEQUENCE;
 }
+
 
 function onTaskComplete() {
     console.log("=== PHASE COMPLETE ===");
@@ -596,11 +687,13 @@ function onTaskComplete() {
     console.log("Total Slips:", STATE.slipCount);
     console.table(STATE.currentPhaseTrials);
 
+
     els.taskUi.classList.add('hidden');
     els.menuOverlay.classList.remove('hidden');
     if (STATE.isPractice) showMenuPhase('real-intro');
     else showMenuPhase('complete');
 }
+
 
 function showMenuPhase(id) {
     document.querySelectorAll('.phase-container').forEach(el => el.classList.remove('active'));
@@ -611,6 +704,7 @@ function showMenuPhase(id) {
     if (id === 'results') els.resultsView.classList.add('active');
 }
 
+
 // ================= RETRY MODAL LOGIC =================
 function showRetryModal(msg) {
     if (!CONFIG.showFeedback) {
@@ -618,13 +712,16 @@ function showRetryModal(msg) {
         return;
     }
 
+
     clearAllTimeouts();
     els.retryMessage.innerText = msg;
     els.retryModal.classList.remove('hidden');
 }
 
+
 function retryTaskTrial() {
     els.retryModal.classList.add('hidden');
+
 
     STATE.isHolding = false;
     STATE.currentTrialConfig = null;
@@ -634,7 +731,9 @@ function retryTaskTrial() {
     els.stimulusText.classList.add('opacity-0');
     els.stimulusText.classList.remove('animate-fadeInDown');
 
+
     setTrialState('waiting');
+
 
     const sequence = getCurrentSequence();
     const currentConfig = sequence[STATE.currentTrialIndex];
@@ -648,9 +747,11 @@ function retryTaskTrial() {
     updateUI();
 }
 
+
 // ================= TASK LOGIC =================
 function handlePressStart() {
     if (STATE.trialState === 'feedback') return;
+
 
     if (STATE.trialState === 'stimulus' && STATE.currentTrialConfig?.type === 'nogo' && STATE.noGoSlipStartTime) {
         const now = Date.now();
@@ -669,6 +770,7 @@ function handlePressStart() {
         return;
     }
 
+
     if (STATE.trialState === 'waiting') {
         const sequence = getCurrentSequence();
         if (STATE.currentTrialIndex >= sequence.length) {
@@ -676,9 +778,11 @@ function handlePressStart() {
             return;
         }
 
+
         STATE.currentTrialConfig = sequence[STATE.currentTrialIndex];
         STATE.isHolding = true;
         setTrialState('holding');
+
 
         const delay = STATE.currentTrialConfig.delay;
         stimulusTimeout = setTimeout(() => {
@@ -688,18 +792,22 @@ function handlePressStart() {
             runStimulusLogic();
         }, delay);
 
+
     } else if (STATE.trialState === 'released') {
         STATE.isHolding = true;
         evaluateGoTrial(true);
     }
 }
 
+
 function handlePressEnd() {
     STATE.isHolding = false;
     const releaseTime = Date.now();
 
+
     if (STATE.trialState === 'holding') {
         clearTimeout(stimulusTimeout);
+
 
         logMetric({
             trialType: 'pending',
@@ -709,12 +817,15 @@ function handlePressEnd() {
             rt: null
         });
 
+
         showRetryModal("You lifted your finger before seeing the instruction. Please keep holding until you see GO or NO GO. Let's try again!");
+
 
     } else if (STATE.trialState === 'stimulus') {
         if (STATE.currentTrialConfig.type === 'go') {
             const reactionTime = releaseTime - STATE.stimulusOnsetTime;
             STATE.currentRT = reactionTime;
+
 
             clearTimeout(goTimeout);
             setPositionForNextPhase();
@@ -725,6 +836,7 @@ function handlePressEnd() {
         }
     }
 }
+
 
 function runStimulusLogic() {
     if (STATE.currentTrialConfig.type === 'go') {
@@ -749,6 +861,7 @@ function runStimulusLogic() {
     }
 }
 
+
 function evaluateGoTrial(heldAgain) {
     logMetric({
         trialType: 'go',
@@ -760,6 +873,7 @@ function evaluateGoTrial(heldAgain) {
     setTrialState('feedback');
     advanceTrial();
 }
+
 
 function evaluateNoGoTrial(finalSuccess) {
     if (finalSuccess) {
@@ -784,9 +898,11 @@ function evaluateNoGoTrial(finalSuccess) {
     }
 }
 
+
 function advanceTrial() {
     STATE.currentTrialIndex++;
     const sequence = getCurrentSequence();
+
 
     if (STATE.currentTrialIndex >= sequence.length) {
         feedbackTimeout = setTimeout(onComplete, 1500);
@@ -800,6 +916,7 @@ function advanceTrial() {
             els.stimulusText.classList.add('opacity-0');
             els.stimulusText.classList.remove('animate-fadeInDown');
 
+
             const nextConfig = sequence[STATE.currentTrialIndex];
             if (nextConfig) {
                 if (CONFIG.circlePosition === 'fixed') {
@@ -809,10 +926,12 @@ function advanceTrial() {
                 }
             }
 
+
             updateUI();
         }, 1500);
     }
 }
+
 
 function setPositionForNextPhase() {
     if (CONFIG.circlePosition === 'fixed') {
@@ -824,46 +943,58 @@ function setPositionForNextPhase() {
     }
 }
 
+
 function onComplete() {
     clearAllTimeouts();
     onTaskComplete();
 }
+
 
 // ================= POSITIONING LOGIC =================
 function updateButtonPosition(xFactor, yFactor) {
     const btnRadius = 64;
     const padding = 20;
 
+
     const minAbsY = btnRadius + padding;
     const maxAbsY = window.innerHeight - btnRadius - padding;
     const availableHeight = maxAbsY - minAbsY;
+
 
     const minAbsX = btnRadius + padding;
     const maxAbsX = window.innerWidth - btnRadius - padding;
     const availableWidth = maxAbsX - minAbsX;
 
+
     if (availableHeight <= 0 || availableWidth <= 0) return;
+
 
     const normX = (xFactor + 1) / 2;
     const normY = (yFactor + 1) / 2;
 
+
     const targetAbsX = minAbsX + (normX * availableWidth);
     const targetAbsY = minAbsY + (normY * availableHeight);
+
 
     const screenCenterX = window.innerWidth / 2;
     const screenCenterY = window.innerHeight / 2;
 
+
     const translateX = targetAbsX - screenCenterX;
     const translateY = targetAbsY - screenCenterY;
+
 
     els.gameButton.style.transform = `translate(${translateX}px, ${translateY}px)`;
     els.stimulusText.style.transform = `translate(${translateX}px, ${translateY - 264}px)`;
 }
 
+
 function setTrialState(newState) {
     STATE.trialState = newState;
     updateUI();
 }
+
 
 function clearAllTimeouts() {
     if (stimulusTimeout) clearTimeout(stimulusTimeout);
@@ -872,13 +1003,16 @@ function clearAllTimeouts() {
     if (noGoTimeout) clearTimeout(noGoTimeout);
 }
 
+
 // ================= UI UPDATE - UPDATED WITH COLOR LOGIC =================
 function updateUI() {
     const { trialState, currentTrialConfig } = STATE;
     const btn = els.gameButton;
 
+
     let text = '';
     let color = '#000000'; // Default BLACK
+
 
     if (trialState === 'waiting') {
         text = 'Press & Hold';
@@ -901,8 +1035,10 @@ function updateUI() {
         text = '';  // No feedback in practice/real sessions
     }
 
+
     els.stimulusText.innerText = text;
     els.stimulusText.style.color = color;
+
 
     if (text) {
         els.stimulusText.classList.remove('opacity-0');
@@ -912,16 +1048,19 @@ function updateUI() {
         els.stimulusText.classList.remove('animate-fadeInDown');
     }
 
+
     btn.className = `w-32 h-32 rounded-full bg-blue-500 shadow-2xl absolute cursor-pointer focus:outline-none touch-none transition-transform duration-300 ease-out`;
     if (trialState === 'waiting') btn.classList.add('hover:scale-105', 'active:scale-95');
     else if (trialState === 'holding') btn.classList.add('scale-95');
     else if (trialState === 'stimulus' || trialState === 'released') btn.classList.add('scale-100');
 }
 
+
 function setupButtonListeners() {
     const btn = els.gameButton;
     const start = (e) => {
         if (e.type === 'mousedown' && e.button !== 0) return;
+
 
         let x, y;
         if (e.touches && e.touches.length > 0) {
@@ -932,6 +1071,7 @@ function setupButtonListeners() {
             y = e.clientY;
         }
 
+
         STATE.lastInput = {
             x: Math.round(x),
             y: Math.round(y),
@@ -939,14 +1079,17 @@ function setupButtonListeners() {
             screenH: window.innerHeight
         };
 
+
         if (e.type === 'touchstart') e.preventDefault();
         handlePressStart();
     };
+
 
     const end = (e) => {
         if (e.type === 'touchend') e.preventDefault();
         handlePressEnd();
     };
+
 
     btn.addEventListener('mousedown', start);
     btn.addEventListener('touchstart', start, { passive: false });
@@ -954,5 +1097,6 @@ function setupButtonListeners() {
     btn.addEventListener('touchend', end, { passive: false });
     btn.addEventListener('mouseleave', () => { if (STATE.isHolding) end(); });
 }
+
 
 init();

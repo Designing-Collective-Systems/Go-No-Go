@@ -33,9 +33,14 @@
             <div class="space-y-6 mb-8 text-lg">
                 <p>This task measures your ability to respond quickly as per instructions.</p>
             </div>
-            <button onclick="startInteractiveInstructions()"
-                class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-lg text-xl transition-colors shadow-lg">
-                Okay, tell me more!
+            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <button onclick="startInteractiveInstructions()"
+                    class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-lg text-xl transition-colors shadow-lg">
+                    Okay, tell me more!
+                </button>
+            </div>
+            <button onclick="skipTutorial()" class="mt-5">
+                Skip Tutorial
             </button>
         </div>
 
@@ -51,8 +56,10 @@
         <!-- Practice Intro (Updated - w/ tutorial) -->
         <div id="intro-practice" class="phase-container text-center max-w-2xl p-8">
             <h1 class="text-3xl font-bold mb-6">Practice Session</h1>
-            <p class="text-lg mb-8">Great job learning the task! Now let's practice with a few trials to make sure you're comfortable.</p>
-            <p class="text-lg mb-8"> The practice will include a mix of <strong style="color: #10b981">GO</strong> and <strong style="color: #ef4444">NO GO</strong> trials in random order. Try your best!</p>
+            <p class="text-lg mb-8">Great job learning the task! Now let's practice with a few trials to make sure
+                you're comfortable.</p>
+            <p class="text-lg mb-8"> The practice will include a mix of <strong style="color: #10b981">GO</strong> and
+                <strong style="color: #ef4444">NO GO</strong> trials in random order. Try your best!</p>
             <button onclick="startPhase('practice')"
                 class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-lg text-xl transition-colors shadow-lg">
                 Start Practice
@@ -78,7 +85,7 @@
                     class="bg-green-600 hover:bg-green-500 text-white px-8 py-4 rounded-lg text-xl transition-colors shadow-lg mr-4">
                     Download Results
                 </button>
-                <button onclick="showResults()"
+                <button onclick="showDashboard()"
                     class="bg-purple-600 hover:bg-purple-500 text-white px-8 py-4 rounded-lg text-xl transition-colors shadow-lg mr-4">
                     See Results
                 </button>
@@ -106,7 +113,8 @@
     <div id="task-ui" class="hidden relative w-full h-screen">
         <div class="absolute inset-0 flex items-center justify-center overflow-hidden">
             <!-- Floating stimulus text directly above circle -->
-            <div id="stimulus-text" class="absolute text-6xl font-black transition-opacity duration-200 opacity-0 pointer-events-none z-20"
+            <div id="stimulus-text"
+                class="absolute text-6xl font-black transition-opacity duration-200 opacity-0 pointer-events-none z-20"
                 style="transform: translate(0px, -264px);">
                 <!-- GO or NO GO will appear here, positioned 200px + circle radius (64px) above circle center -->
             </div>
@@ -123,7 +131,8 @@
     <div id="tutorial-ui" class="hidden relative w-full h-screen">
         <div class="absolute inset-0 flex items-center justify-center overflow-hidden">
             <!-- Floating stimulus text directly above circle -->
-            <div id="tutorial-stimulus-text" class="absolute text-6xl font-black transition-opacity duration-200 opacity-0 pointer-events-none z-20"
+            <div id="tutorial-stimulus-text"
+                class="absolute text-6xl font-black transition-opacity duration-200 opacity-0 pointer-events-none z-20"
                 style="transform: translate(0px, -264px);">
                 <!-- GO or NO GO will appear here, positioned 200px + circle radius (64px) above circle center -->
             </div>
