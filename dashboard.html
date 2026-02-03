@@ -1,642 +1,1101 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Go/No-Go Results Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Sora:wght@300;400;600;700&display=swap');
-        
-        body {
-            font-family: 'Sora', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-        }
-        
-        .mono {
-            font-family: 'JetBrains Mono', monospace;
-        }
-        
-        .card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 16px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            padding: 24px;
-            margin-bottom: 24px;
-        }
-        
-        .stat-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 12px;
-            padding: 20px;
-            text-align: center;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-        }
-        
-        .phase-toggle {
-            display: inline-flex;
-            background: #f1f5f9;
-            border-radius: 12px;
-            padding: 4px;
-        }
-        
-        .phase-toggle button {
-            padding: 8px 20px;
-            border-radius: 8px;
-            border: none;
-            background: transparent;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-weight: 600;
-        }
-        
-        .phase-toggle button.active {
-            background: white;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-        
-        .section-title {
-            font-size: 24px;
-            font-weight: 700;
-            margin-bottom: 16px;
-            color: #1e293b;
-        }
-        
-        .loading {
-            text-align: center;
-            padding: 60px;
-            color: white;
-            font-size: 24px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Go/No-Go Results Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Sora:wght@300;400;600;700&display=swap');
+    
+    body {
+      font-family: 'Sora', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    
+    .card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    }
+    
+    .phase-toggle {
+      display: inline-flex;
+      background: #f1f5f9;
+      border-radius: 12px;
+      padding: 4px;
+    }
+    
+    .phase-toggle button {
+      padding: 8px 20px;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: 600;
+    }
+    
+    .phase-toggle button.active {
+      background: white;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .section-title {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: #1e293b;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 60px;
+      color: white;
+      font-size: 24px;
+    }
+  </style>
 </head>
 <body>
-    <div id="loading" class="loading">
-        <div>Loading data...</div>
-    </div>
+
+  <div id="loading" class="loading">
+    <div>Loading data...</div>
+  </div>
+
+  <div id="dashboard" class="hidden max-w-7xl mx-auto p-8">
     
-    <div id="dashboard" class="hidden max-w-7xl mx-auto p-8">
-        <div class="text-center mb-8">
-            <h1 class="text-5xl font-bold text-white mb-4">Go/No-Go Results Dashboard</h1>
-            <p class="text-xl text-white/90">Comprehensive analysis of your task performance</p>
-        </div>
-        
-        <!-- Phase Selection -->
-        <div class="card text-center">
-            <div class="phase-toggle">
-                <button id="btn-practice" onclick="setPhase('practice')">Practice</button>
-                <button id="btn-real" onclick="setPhase('real')">Real Study</button>
-                <button id="btn-both" onclick="setPhase('both')" class="active">Both</button>
-            </div>
-        </div>
-        
-        <!-- Summary Statistics -->
-        <div class="card">
-            <h2 class="section-title">Summary Statistics</h2>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div class="stat-card">
-                    <div class="text-3xl font-bold mono" id="stat-total-trials">-</div>
-                    <div class="text-sm opacity-90 mt-1">Total Trials</div>
-                </div>
-                <div class="stat-card">
-                    <div class="text-3xl font-bold mono" id="stat-accuracy">-</div>
-                    <div class="text-sm opacity-90 mt-1">Accuracy</div>
-                </div>
-                <div class="stat-card">
-                    <div class="text-3xl font-bold mono" id="stat-mean-rt">-</div>
-                    <div class="text-sm opacity-90 mt-1">Mean RT (ms)</div>
-                </div>
-                <div class="stat-card">
-                    <div class="text-3xl font-bold mono" id="stat-median-rt">-</div>
-                    <div class="text-sm opacity-90 mt-1">Median RT (ms)</div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Reaction Time Analysis -->
-        <div class="card">
-            <h2 class="section-title">Reaction Time Analysis</h2>
-            <div id="rt-histogram" style="height: 400px;"></div>
-        </div>
-        
-        <div class="card">
-            <h2 class="section-title">Reaction Time Distribution</h2>
-            <div id="rt-boxplot" style="height: 300px;"></div>
-        </div>
-        
-        <div class="card">
-            <h2 class="section-title">Reaction Time by Trial</h2>
-            <div id="rt-by-trial" style="height: 350px;"></div>
-        </div>
-        
-        <!-- Error Analysis -->
-        <div class="card">
-            <h2 class="section-title">Error Analysis</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <h3 class="font-semibold mb-3 text-lg">Error Types</h3>
-                    <div id="error-types" style="height: 300px;"></div>
-                </div>
-                <div>
-                    <h3 class="font-semibold mb-3 text-lg">Errors by Trial</h3>
-                    <div id="errors-by-trial" style="height: 300px;"></div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Additional Metrics -->
-        <div class="card">
-            <h2 class="section-title">Additional Metrics</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div class="stat-card">
-                    <div class="text-3xl font-bold mono" id="stat-std-rt">-</div>
-                    <div class="text-sm opacity-90 mt-1">RT Std Dev (ms)</div>
-                </div>
-                <div class="stat-card">
-                    <div class="text-3xl font-bold mono" id="stat-mean-reciprocal">-</div>
-                    <div class="text-sm opacity-90 mt-1">Mean 1/RT</div>
-                </div>
-                <div class="stat-card">
-                    <div class="text-3xl font-bold mono" id="stat-go-accuracy">-</div>
-                    <div class="text-sm opacity-90 mt-1">GO Accuracy</div>
-                </div>
-            </div>
-            <div id="rt-vs-trial" style="height: 350px;"></div>
-        </div>
-        
-        <!-- Phase Comparison (shown only when "Both" is selected) -->
-        <div id="comparison-section" class="card">
-            <h2 class="section-title">Phase Comparison</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <h3 class="font-semibold mb-3 text-lg">RT Distribution Comparison</h3>
-                    <div id="phase-comparison-box" style="height: 300px;"></div>
-                </div>
-                <div>
-                    <h3 class="font-semibold mb-3 text-lg">Accuracy Comparison</h3>
-                    <div id="phase-comparison-accuracy" style="height: 300px;"></div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Raw Data Table -->
-        <div class="card">
-            <h2 class="section-title">Raw Data</h2>
-            <div class="overflow-x-auto">
-                <table id="data-table" class="w-full border-collapse">
-                    <thead>
-                        <tr class="bg-slate-100">
-                            <th class="border border-slate-300 px-4 py-2 text-left">Phase</th>
-                            <th class="border border-slate-300 px-4 py-2 text-left">Trial</th>
-                            <th class="border border-slate-300 px-4 py-2 text-left">Type</th>
-                            <th class="border border-slate-300 px-4 py-2 text-left">Correct</th>
-                            <th class="border border-slate-300 px-4 py-2 text-left">Error</th>
-                            <th class="border border-slate-300 px-4 py-2 text-left">RT (ms)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="data-table-body">
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        
-        <div class="text-center mt-8">
-            <button onclick="window.close()" class="bg-white text-purple-700 px-8 py-3 rounded-lg font-semibold hover:bg-purple-50 transition-colors shadow-lg">
-                Close Dashboard
-            </button>
-        </div>
+    <!-- Header -->
+    <div class="text-center mb-8">
+      <h1 class="text-5xl font-bold text-white mb-4">Go/No-Go Results Dashboard</h1>
+      <p class="text-xl text-white/90">Comprehensive analysis of your task performance</p>
     </div>
-    
-    <script>
-        let allData = [];
-        let currentPhase = 'both';
+
+    <!-- Phase Selection -->
+    <div class="card text-center">
+      <div class="phase-toggle">
+        <button id="btn-practice" onclick="setPhase('practice')">Practice</button>
+        <button id="btn-real" onclick="setPhase('real')">Real Study</button>
+        <button id="btn-both" onclick="setPhase('both')" class="active">Both</button>
+      </div>
+    </div>
+
+    <!-- Summary Statistics -->
+    <div class="card">
+      <h2 class="section-title">Summary Statistics</h2>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="stat-card">
+          <div class="text-3xl font-bold mono" id="stat-total-trials">-</div>
+          <div class="text-sm opacity-90 mt-1">Total Trials</div>
+        </div>
+        <div class="stat-card">
+          <div class="text-3xl font-bold mono" id="stat-accuracy">-</div>
+          <div class="text-sm opacity-90 mt-1">Accuracy</div>
+        </div>
+        <div class="stat-card">
+          <div class="text-3xl font-bold mono" id="stat-mean-rt">-</div>
+          <div class="text-sm opacity-90 mt-1">Mean RT (ms)</div>
+        </div>
+        <div class="stat-card">
+          <div class="text-3xl font-bold mono" id="stat-median-rt">-</div>
+          <div class="text-sm opacity-90 mt-1">Median RT (ms)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Movement Metrics -->
+    <div class="card">
+      <h2 class="section-title">Movement Metrics</h2>
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div class="stat-card">
+          <div class="text-2xl font-bold mono" id="stat-mean-mot">-</div>
+          <div class="text-sm opacity-90 mt-1">Mean MOT (ms)</div>
+        </div>
+        <div class="stat-card">
+          <div class="text-2xl font-bold mono" id="stat-mean-movement-time">-</div>
+          <div class="text-sm opacity-90 mt-1">Mean Move Time (ms)</div>
+        </div>
+        <div class="stat-card">
+          <div class="text-2xl font-bold mono" id="stat-mean-peak-velocity">-</div>
+          <div class="text-sm opacity-90 mt-1">Mean Peak Vel (px/s)</div>
+        </div>
+        <div class="stat-card">
+          <div class="text-2xl font-bold mono" id="stat-mean-path-length">-</div>
+          <div class="text-sm opacity-90 mt-1">Mean Path (px)</div>
+        </div>
+        <div class="stat-card">
+          <div class="text-2xl font-bold mono" id="stat-mean-reversals">-</div>
+          <div class="text-sm opacity-90 mt-1">Mean Reversals</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reaction Time Analysis -->
+    <div class="card">
+      <h2 class="section-title">Reaction Time Analysis</h2>
+      <div id="rt-histogram" style="height: 400px"></div>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">Reaction Time Distribution</h2>
+      <div id="rt-boxplot" style="height: 300px"></div>
+    </div>
+
+    <!-- Movement Timing Breakdown -->
+    <div class="card">
+      <h2 class="section-title">Movement Timing Breakdown</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <h3 class="font-semibold mb-3 text-lg">RT Components</h3>
+          <div id="timing-breakdown" style="height: 350px"></div>
+        </div>
+        <div>
+          <h3 class="font-semibold mb-3 text-lg">Movement vs Response Time</h3>
+          <div id="movement-vs-response" style="height: 350px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Movement Kinematics -->
+    <div class="card">
+      <h2 class="section-title">Movement Kinematics</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <h3 class="font-semibold mb-3 text-lg">Peak Velocity Distribution</h3>
+          <div id="peak-velocity-hist" style="height: 300px"></div>
+        </div>
+        <div>
+          <h3 class="font-semibold mb-3 text-lg">Peak Velocity Over Trials</h3>
+          <div id="peak-velocity-trials" style="height: 300px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Path Analysis -->
+    <div class="card">
+      <h2 class="section-title">Path Analysis</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <h3 class="font-semibold mb-3 text-lg">Path Length Distribution</h3>
+          <div id="path-length-hist" style="height: 300px"></div>
+        </div>
+        <div>
+          <h3 class="font-semibold mb-3 text-lg">Direction Reversals</h3>
+          <div id="reversals-hist" style="height: 300px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Spatial Analysis -->
+    <div class="card">
+      <h2 class="section-title">Spatial Analysis</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <h3 class="font-semibold mb-3 text-lg">Movement Trajectories</h3>
+          <div id="trajectories-plot" style="height: 400px"></div>
+        </div>
+        <div>
+          <h3 class="font-semibold mb-3 text-lg">Start vs End Positions</h3>
+          <div id="positions-scatter" style="height: 400px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Movement Efficiency -->
+    <div class="card">
+      <h2 class="section-title">Movement Efficiency</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <h3 class="font-semibold mb-3 text-lg">Path Efficiency (Straight-line distance / Actual path)</h3>
+          <div id="efficiency-hist" style="height: 300px"></div>
+        </div>
+        <div>
+          <h3 class="font-semibold mb-3 text-lg">Efficiency Over Trials</h3>
+          <div id="efficiency-trials" style="height: 300px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NO-GO Analysis -->
+    <div class="card">
+      <h2 class="section-title">NO-GO Trial Analysis</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <h3 class="font-semibold mb-3 text-lg">Max Displacement in NO-GO Trials</h3>
+          <div id="nogo-displacement" style="height: 300px"></div>
+        </div>
+        <div>
+          <h3 class="font-semibold mb-3 text-lg">NO-GO Success Rate</h3>
+          <div id="nogo-success" style="height: 300px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error Analysis -->
+    <div class="card">
+      <h2 class="section-title">Error Analysis</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <h3 class="font-semibold mb-3 text-lg">Error Types</h3>
+          <div id="error-types" style="height: 300px"></div>
+        </div>
+        <div>
+          <h3 class="font-semibold mb-3 text-lg">Errors by Trial</h3>
+          <div id="errors-by-trial" style="height: 300px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Performance Over Time -->
+    <div class="card">
+      <h2 class="section-title">Performance Over Time</h2>
+      <div id="performance-time" style="height: 400px"></div>
+    </div>
+
+    <!-- Phase Comparison (shown only when 'Both' is selected) -->
+    <div id="comparison-section" class="card">
+      <h2 class="section-title">Phase Comparison</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div>
+          <h3 class="font-semibold mb-3 text-lg">RT Distribution Comparison</h3>
+          <div id="phase-comparison-box" style="height: 300px"></div>
+        </div>
+        <div>
+          <h3 class="font-semibold mb-3 text-lg">Accuracy Comparison</h3>
+          <div id="phase-comparison-accuracy" style="height: 300px"></div>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <h3 class="font-semibold mb-3 text-lg">Movement Time Comparison</h3>
+          <div id="phase-comparison-movement" style="height: 300px"></div>
+        </div>
+        <div>
+          <h3 class="font-semibold mb-3 text-lg">Peak Velocity Comparison</h3>
+          <div id="phase-comparison-velocity" style="height: 300px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Raw Data Table -->
+    <div class="card">
+      <h2 class="section-title">Raw Data</h2>
+      <div class="overflow-x-auto">
+        <table id="data-table" class="w-full border-collapse">
+          <thead>
+            <tr class="bg-slate-100">
+              <th class="border border-slate-300 px-4 py-2 text-left">Phase</th>
+              <th class="border border-slate-300 px-4 py-2 text-left">Trial</th>
+              <th class="border border-slate-300 px-4 py-2 text-left">Type</th>
+              <th class="border border-slate-300 px-4 py-2 text-left">Correct</th>
+              <th class="border border-slate-300 px-4 py-2 text-left">Error</th>
+              <th class="border border-slate-300 px-4 py-2 text-left">RT (ms)</th>
+              <th class="border border-slate-300 px-4 py-2 text-left">MOT (ms)</th>
+              <th class="border border-slate-300 px-4 py-2 text-left">Move Time (ms)</th>
+              <th class="border border-slate-300 px-4 py-2 text-left">TPV (ms)</th>
+              <th class="border border-slate-300 px-4 py-2 text-left">Resp Time (ms)</th>
+              <th class="border border-slate-300 px-4 py-2 text-left">PV (px/s)</th>
+              <th class="border border-slate-300 px-4 py-2 text-left">Path (px)</th>
+              <th class="border border-slate-300 px-4 py-2 text-left">Reversals</th>
+              <th class="border border-slate-300 px-4 py-2 text-left">Start (x,y)</th>
+              <th class="border border-slate-300 px-4 py-2 text-left">Goal (x,y)</th>
+              <th class="border border-slate-300 px-4 py-2 text-left">End (x,y)</th>
+              <th class="border border-slate-300 px-4 py-2 text-left">Max NO-GO Disp (px)</th>
+            </tr>
+          </thead>
+          <tbody id="data-table-body">
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Close Button -->
+    <div class="text-center mt-8">
+      <button onclick="window.close()" class="bg-white text-purple-700 px-8 py-3 rounded-lg font-semibold hover:bg-purple-50 transition-colors shadow-lg">
+        Close Dashboard
+      </button>
+    </div>
+
+  </div>
+
+  <script>
+    let allData = [];
+    let currentPhase = 'both';
+
+    // Listen for data from parent window
+    window.addEventListener('message', (event) => {
+      if (event.data.type === 'GONOGO_DATA') {
+        allData = event.data.data;
+        initializeDashboard();
+      }
+    });
+
+    // Also check if data is in localStorage (fallback)
+    window.addEventListener('load', () => {
+      const storedData = localStorage.getItem('goNoGoResults');
+      if (storedData && allData.length === 0) {
+        allData = JSON.parse(storedData);
+        initializeDashboard();
+      }
+    });
+
+    function initializeDashboard() {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('dashboard').classList.remove('hidden');
+      updateDashboard();
+    }
+
+    function setPhase(phase) {
+      currentPhase = phase;
+      
+      document.querySelectorAll('.phase-toggle button').forEach(btn => btn.classList.remove('active'));
+      document.getElementById(`btn-${phase}`).classList.add('active');
+      
+      // Show/hide comparison section
+      document.getElementById('comparison-section').style.display = 
+        (phase === 'both') ? 'block' : 'none';
+      
+      updateDashboard();
+    }
+
+    function filterData() {
+      if (currentPhase === 'both') {
+        return allData;
+      } else if (currentPhase === 'practice') {
+        return allData.filter(d => d.phase === 'Practice');
+      } else {
+        return allData.filter(d => d.phase === 'Real Study');
+      }
+    }
+
+    function updateDashboard() {
+      const data = filterData();
+      
+      updateStats(data);
+      plotRTHistogram(data);
+      plotRTBoxplot(data);
+      plotTimingBreakdown(data);
+      plotMovementVsResponse(data);
+      plotPeakVelocityHist(data);
+      plotPeakVelocityTrials(data);
+      plotPathLengthHist(data);
+      plotReversalsHist(data);
+      plotTrajectories(data);
+      plotPositionsScatter(data);
+      plotEfficiencyHist(data);
+      plotEfficiencyTrials(data);
+      plotNoGoDisplacement(data);
+      plotNoGoSuccess(data);
+      plotErrorTypes(data);
+      plotErrorsByTrial(data);
+      plotPerformanceTime(data);
+      updateDataTable(data);
+      
+      if (currentPhase === 'both') {
+        plotPhaseComparison();
+      }
+    }
+
+    function updateStats(data) {
+      const successfulTrials = data.filter(d => d.isCorrect && d.trialType !== 'pending');
+      const goTrials = data.filter(d => d.trialType === 'go' && d.rt != null && d.rt !== undefined);
+      const rts = goTrials.map(d => d.rt);
+      
+      document.getElementById('stat-total-trials').textContent = 
+        [...new Set(data.map(d => `${d.phase}-${d.trialIndex}`))].length;
+      
+      const accuracy = (successfulTrials.length / data.filter(d => d.trialType !== 'pending').length) * 100;
+      document.getElementById('stat-accuracy').textContent = accuracy.toFixed(1) + '%';
+      
+      if (rts.length > 0) {
+        const mean = rts.reduce((a, b) => a + b, 0) / rts.length;
+        document.getElementById('stat-mean-rt').textContent = mean.toFixed(0);
         
-        // Listen for data from parent window
-        window.addEventListener('message', (event) => {
-            if (event.data.type === 'GO_NOGO_DATA') {
-                allData = event.data.data;
-                initializeDashboard();
-            }
+        const sorted = [...rts].sort((a, b) => a - b);
+        const median = (sorted.length % 2 === 0) 
+          ? (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2 
+          : sorted[Math.floor(sorted.length / 2)];
+        document.getElementById('stat-median-rt').textContent = median.toFixed(0);
+      } else {
+        document.getElementById('stat-mean-rt').textContent = 'N/A';
+        document.getElementById('stat-median-rt').textContent = 'N/A';
+      }
+      
+      // Movement metrics
+      const movementTrials = goTrials.filter(d => d.movementOnsetTimeMs != null);
+      if (movementTrials.length > 0) {
+        const meanMOT = movementTrials.reduce((sum, d) => sum + d.movementOnsetTimeMs, 0) / movementTrials.length;
+        document.getElementById('stat-mean-mot').textContent = meanMOT.toFixed(0);
+        
+        const meanMoveTime = movementTrials.filter(d => d.totalMovementTimeMs).reduce((sum, d) => sum + d.totalMovementTimeMs, 0) / movementTrials.filter(d => d.totalMovementTimeMs).length;
+        document.getElementById('stat-mean-movement-time').textContent = meanMoveTime.toFixed(0);
+        
+        const meanPV = movementTrials.filter(d => d.peakVelocityPxPerSec).reduce((sum, d) => sum + d.peakVelocityPxPerSec, 0) / movementTrials.filter(d => d.peakVelocityPxPerSec).length;
+        document.getElementById('stat-mean-peak-velocity').textContent = meanPV.toFixed(0);
+        
+        const meanPath = movementTrials.filter(d => d.pathLengthPx).reduce((sum, d) => sum + d.pathLengthPx, 0) / movementTrials.filter(d => d.pathLengthPx).length;
+        document.getElementById('stat-mean-path-length').textContent = meanPath.toFixed(0);
+        
+        const meanReversals = movementTrials.filter(d => d.directionReversals != null).reduce((sum, d) => sum + d.directionReversals, 0) / movementTrials.filter(d => d.directionReversals != null).length;
+        document.getElementById('stat-mean-reversals').textContent = meanReversals.toFixed(1);
+      } else {
+        document.getElementById('stat-mean-mot').textContent = 'N/A';
+        document.getElementById('stat-mean-movement-time').textContent = 'N/A';
+        document.getElementById('stat-mean-peak-velocity').textContent = 'N/A';
+        document.getElementById('stat-mean-path-length').textContent = 'N/A';
+        document.getElementById('stat-mean-reversals').textContent = 'N/A';
+      }
+    }
+
+    function plotRTHistogram(data) {
+      const rts = data.filter(d => d.trialType === 'go' && d.rt).map(d => d.rt);
+      
+      if (rts.length === 0) {
+        Plotly.newPlot('rt-histogram', [], { title: 'No reaction time data available' });
+        return;
+      }
+      
+      const mean = rts.reduce((a, b) => a + b, 0) / rts.length;
+      const variance = rts.reduce((sum, rt) => sum + Math.pow(rt - mean, 2), 0) / rts.length;
+      const std = Math.sqrt(variance);
+      
+      const trace1 = {
+        x: rts,
+        type: 'histogram',
+        name: 'Reaction Times',
+        marker: { color: '#667eea' },
+        opacity: 0.7,
+        xbins: { size: 50 }
+      };
+      
+      const layout = {
+        title: 'Reaction Time Distribution',
+        xaxis: { title: 'Reaction Time (ms)', rangemode: 'tozero' },
+        yaxis: { title: 'Frequency', rangemode: 'tozero' },
+        showlegend: false
+      };
+      
+      Plotly.newPlot('rt-histogram', [trace1], layout);
+    }
+
+    function plotRTBoxplot(data) {
+      const practiceRTs = data.filter(d => d.phase === 'Practice' && d.trialType === 'go' && d.rt).map(d => d.rt);
+      const realRTs = data.filter(d => d.phase === 'Real Study' && d.trialType === 'go' && d.rt).map(d => d.rt);
+      
+      const traces = [];
+      
+      if (currentPhase === 'both') {
+        if (practiceRTs.length > 0) {
+          traces.push({
+            y: practiceRTs,
+            type: 'box',
+            name: 'Practice',
+            marker: { color: '#667eea' }
+          });
+        }
+        if (realRTs.length > 0) {
+          traces.push({
+            y: realRTs,
+            type: 'box',
+            name: 'Real Study',
+            marker: { color: '#764ba2' }
+          });
+        }
+      } else {
+        const rts = data.filter(d => d.trialType === 'go' && d.rt).map(d => d.rt);
+        if (rts.length > 0) {
+          traces.push({
+            y: rts,
+            type: 'box',
+            name: currentPhase === 'practice' ? 'Practice' : 'Real Study',
+            marker: { color: currentPhase === 'practice' ? '#667eea' : '#764ba2' }
+          });
+        }
+      }
+      
+      const layout = {
+        yaxis: { title: 'Reaction Time (ms)', rangemode: 'tozero' }
+      };
+      
+      Plotly.newPlot('rt-boxplot', traces, layout);
+    }
+
+    function plotTimingBreakdown(data) {
+      const goTrials = data.filter(d => d.trialType === 'go' && d.movementOnsetTimeMs && d.totalMovementTimeMs);
+      
+      if (goTrials.length === 0) {
+        Plotly.newPlot('timing-breakdown', [], { title: 'No timing data available' });
+        return;
+      }
+      
+      const avgMOT = goTrials.reduce((sum, d) => sum + d.movementOnsetTimeMs, 0) / goTrials.length;
+      const avgMoveTime = goTrials.reduce((sum, d) => sum + d.totalMovementTimeMs, 0) / goTrials.length;
+      
+      const trace = {
+        x: ['Movement Onset', 'Execution'],
+        y: [avgMOT, avgMoveTime],
+        type: 'bar',
+        marker: { color: ['#667eea', '#764ba2'] }
+      };
+      
+      const layout = {
+        yaxis: { title: 'Time (ms)', rangemode: 'tozero' }
+      };
+      
+      Plotly.newPlot('timing-breakdown', [trace], layout);
+    }
+
+    function plotMovementVsResponse(data) {
+      const goTrials = data.filter(d => d.trialType === 'go' && d.totalMovementTimeMs && d.responseTimeMs);
+      
+      if (goTrials.length === 0) {
+        Plotly.newPlot('movement-vs-response', [], { title: 'No timing data available' });
+        return;
+      }
+      
+      const trace = {
+        x: goTrials.map(d => d.totalMovementTimeMs),
+        y: goTrials.map(d => d.responseTimeMs),
+        mode: 'markers',
+        type: 'scatter',
+        marker: { size: 10, color: '#667eea' },
+        text: goTrials.map(d => `Trial ${d.trialIndex}`)
+      };
+      
+      const layout = {
+        xaxis: { title: 'Movement Time (ms)', rangemode: 'tozero' },
+        yaxis: { title: 'Response Time (ms)', rangemode: 'tozero' }
+      };
+      
+      Plotly.newPlot('movement-vs-response', [trace], layout);
+    }
+
+    function plotPeakVelocityHist(data) {
+      const velocities = data.filter(d => d.trialType === 'go' && d.peakVelocityPxPerSec).map(d => d.peakVelocityPxPerSec);
+      
+      if (velocities.length === 0) {
+        Plotly.newPlot('peak-velocity-hist', [], { title: 'No velocity data available' });
+        return;
+      }
+      
+      const trace = {
+        x: velocities,
+        type: 'histogram',
+        marker: { color: '#10b981' },
+        opacity: 0.7
+      };
+      
+      const layout = {
+        xaxis: { title: 'Peak Velocity (px/s)', rangemode: 'tozero' },
+        yaxis: { title: 'Frequency', rangemode: 'tozero' }
+      };
+      
+      Plotly.newPlot('peak-velocity-hist', [trace], layout);
+    }
+
+    function plotPeakVelocityTrials(data) {
+      const goTrials = data.filter(d => d.trialType === 'go' && d.peakVelocityPxPerSec);
+      
+      if (goTrials.length === 0) {
+        Plotly.newPlot('peak-velocity-trials', [], { title: 'No velocity data available' });
+        return;
+      }
+      
+      const trace = {
+        x: goTrials.map(d => d.trialIndex),
+        y: goTrials.map(d => d.peakVelocityPxPerSec),
+        mode: 'lines+markers',
+        type: 'scatter',
+        line: { color: '#10b981', width: 2 },
+        marker: { size: 8 }
+      };
+      
+      const layout = {
+        xaxis: { title: 'Trial Number', rangemode: 'tozero' },
+        yaxis: { title: 'Peak Velocity (px/s)', rangemode: 'tozero' }
+      };
+      
+      Plotly.newPlot('peak-velocity-trials', [trace], layout);
+    }
+
+    function plotPathLengthHist(data) {
+      const paths = data.filter(d => d.trialType === 'go' && d.pathLengthPx).map(d => d.pathLengthPx);
+      
+      if (paths.length === 0) {
+        Plotly.newPlot('path-length-hist', [], { title: 'No path data available' });
+        return;
+      }
+      
+      const trace = {
+        x: paths,
+        type: 'histogram',
+        marker: { color: '#f59e0b' },
+        opacity: 0.7
+      };
+      
+      const layout = {
+        xaxis: { title: 'Path Length (px)', rangemode: 'tozero' },
+        yaxis: { title: 'Frequency', rangemode: 'tozero' }
+      };
+      
+      Plotly.newPlot('path-length-hist', [trace], layout);
+    }
+
+    function plotReversalsHist(data) {
+      const reversals = data.filter(d => d.trialType === 'go' && d.directionReversals != null).map(d => d.directionReversals);
+      
+      if (reversals.length === 0) {
+        Plotly.newPlot('reversals-hist', [], { title: 'No reversal data available' });
+        return;
+      }
+      
+      const trace = {
+        x: reversals,
+        type: 'histogram',
+        marker: { color: '#ef4444' },
+        opacity: 0.7
+      };
+      
+      const layout = {
+        xaxis: { title: 'Direction Reversals', rangemode: 'tozero' },
+        yaxis: { title: 'Frequency', rangemode: 'tozero' }
+      };
+      
+      Plotly.newPlot('reversals-hist', [trace], layout);
+    }
+
+    function plotTrajectories(data) {
+      const goTrials = data.filter(d => d.trialType === 'go' && d.startX != null && d.goalX != null && d.endX != null);
+      
+      if (goTrials.length === 0) {
+        Plotly.newPlot('trajectories-plot', [], { title: 'No trajectory data available' });
+        return;
+      }
+      
+      const traces = goTrials.slice(0, 10).map((trial, i) => ({
+        x: [trial.startX, trial.endX, trial.goalX],
+        y: [trial.startY, trial.endY, trial.goalY],
+        mode: 'lines+markers',
+        type: 'scatter',
+        name: `Trial ${trial.trialIndex}`,
+        line: { width: 2 },
+        marker: { size: [10, 8, 12], symbol: ['circle', 'circle', 'star'] }
+      }));
+      
+      const layout = {
+        xaxis: { title: 'X Position (px)' },
+        yaxis: { title: 'Y Position (px)', autorange: 'reversed' },
+        showlegend: true
+      };
+      
+      Plotly.newPlot('trajectories-plot', traces, layout);
+    }
+
+    function plotPositionsScatter(data) {
+      const goTrials = data.filter(d => d.trialType === 'go' && d.startX != null && d.endX != null);
+      
+      if (goTrials.length === 0) {
+        Plotly.newPlot('positions-scatter', [], { title: 'No position data available' });
+        return;
+      }
+      
+      const traceStart = {
+        x: goTrials.map(d => d.startX),
+        y: goTrials.map(d => d.startY),
+        mode: 'markers',
+        type: 'scatter',
+        name: 'Start',
+        marker: { size: 10, color: '#667eea' }
+      };
+      
+      const traceEnd = {
+        x: goTrials.map(d => d.endX),
+        y: goTrials.map(d => d.endY),
+        mode: 'markers',
+        type: 'scatter',
+        name: 'End',
+        marker: { size: 10, color: '#ef4444' }
+      };
+      
+      const traceGoal = {
+        x: goTrials.map(d => d.goalX),
+        y: goTrials.map(d => d.goalY),
+        mode: 'markers',
+        type: 'scatter',
+        name: 'Goal',
+        marker: { size: 12, color: '#f97316', symbol: 'star' }
+      };
+      
+      const layout = {
+        xaxis: { title: 'X Position (px)' },
+        yaxis: { title: 'Y Position (px)', autorange: 'reversed' },
+        showlegend: true
+      };
+      
+      Plotly.newPlot('positions-scatter', [traceStart, traceEnd, traceGoal], layout);
+    }
+
+    function plotEfficiencyHist(data) {
+      const goTrials = data.filter(d => d.trialType === 'go' && d.startX != null && d.goalX != null && d.pathLengthPx);
+      
+      if (goTrials.length === 0) {
+        Plotly.newPlot('efficiency-hist', [], { title: 'No efficiency data available' });
+        return;
+      }
+      
+      const efficiencies = goTrials.map(d => {
+        const dx = d.goalX - d.startX;
+        const dy = d.goalY - d.startY;
+        const straightDist = Math.sqrt(dx * dx + dy * dy);
+        return straightDist / d.pathLengthPx;
+      });
+      
+      const trace = {
+        x: efficiencies,
+        type: 'histogram',
+        marker: { color: '#8b5cf6' },
+        opacity: 0.7
+      };
+      
+      const layout = {
+        xaxis: { title: 'Efficiency Ratio', range: [0, 1] },
+        yaxis: { title: 'Frequency', rangemode: 'tozero' }
+      };
+      
+      Plotly.newPlot('efficiency-hist', [trace], layout);
+    }
+
+    function plotEfficiencyTrials(data) {
+      const goTrials = data.filter(d => d.trialType === 'go' && d.startX != null && d.goalX != null && d.pathLengthPx);
+      
+      if (goTrials.length === 0) {
+        Plotly.newPlot('efficiency-trials', [], { title: 'No efficiency data available' });
+        return;
+      }
+      
+      const efficiencies = goTrials.map(d => {
+        const dx = d.goalX - d.startX;
+        const dy = d.goalY - d.startY;
+        const straightDist = Math.sqrt(dx * dx + dy * dy);
+        return straightDist / d.pathLengthPx;
+      });
+      
+      const trace = {
+        x: goTrials.map(d => d.trialIndex),
+        y: efficiencies,
+        mode: 'lines+markers',
+        type: 'scatter',
+        line: { color: '#8b5cf6', width: 2 },
+        marker: { size: 8 }
+      };
+      
+      const layout = {
+        xaxis: { title: 'Trial Number', rangemode: 'tozero' },
+        yaxis: { title: 'Efficiency Ratio', range: [0, 1] }
+      };
+      
+      Plotly.newPlot('efficiency-trials', [trace], layout);
+    }
+
+    function plotNoGoDisplacement(data) {
+      const nogoTrials = data.filter(d => d.trialType === 'nogo' && d.maxNoGoDisplacementPx != null);
+      
+      if (nogoTrials.length === 0) {
+        document.getElementById('nogo-displacement').innerHTML = 
+          '<div class="flex items-center justify-center h-full text-gray-500 text-lg">No NO-GO displacement data</div>';
+        return;
+      }
+      
+      const trace = {
+        x: nogoTrials.map(d => d.maxNoGoDisplacementPx),
+        type: 'histogram',
+        marker: { color: '#ef4444' },
+        opacity: 0.7
+      };
+      
+      const layout = {
+        xaxis: { title: 'Max Displacement (px)', rangemode: 'tozero' },
+        yaxis: { title: 'Frequency', rangemode: 'tozero' }
+      };
+      
+      Plotly.newPlot('nogo-displacement', [trace], layout);
+    }
+
+    function plotNoGoSuccess(data) {
+      const nogoTrials = data.filter(d => d.trialType === 'nogo');
+      
+      if (nogoTrials.length === 0) {
+        document.getElementById('nogo-success').innerHTML = 
+          '<div class="flex items-center justify-center h-full text-gray-500 text-lg">No NO-GO trials</div>';
+        return;
+      }
+      
+      const correct = nogoTrials.filter(d => d.isCorrect).length;
+      const incorrect = nogoTrials.length - correct;
+      
+      const trace = {
+        values: [correct, incorrect],
+        labels: ['Success', 'Failed'],
+        type: 'pie',
+        marker: { colors: ['#10b981', '#ef4444'] }
+      };
+      
+      Plotly.newPlot('nogo-success', [trace], { showlegend: true });
+    }
+
+    function plotErrorTypes(data) {
+      const errors = data.filter(d => !d.isCorrect);
+      
+      if (errors.length === 0) {
+        document.getElementById('error-types').innerHTML = 
+          '<div class="flex items-center justify-center h-full text-gray-500 text-lg">No errors recorded</div>';
+        return;
+      }
+      
+      const errorCounts = {};
+      errors.forEach(d => {
+        errorCounts[d.errorCategory] = (errorCounts[d.errorCategory] || 0) + 1;
+      });
+      
+      const trace = {
+        labels: Object.keys(errorCounts),
+        values: Object.values(errorCounts),
+        type: 'pie',
+        marker: { colors: ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6'] }
+      };
+      
+      Plotly.newPlot('error-types', [trace], { showlegend: true });
+    }
+
+    function plotErrorsByTrial(data) {
+      const errors = data.filter(d => !d.isCorrect);
+      
+      if (errors.length === 0) {
+        document.getElementById('errors-by-trial').innerHTML = 
+          '<div class="flex items-center justify-center h-full text-gray-500 text-lg">No errors recorded</div>';
+        return;
+      }
+      
+      const trialErrors = {};
+      data.forEach(d => {
+        if (!trialErrors[d.trialIndex]) {
+          trialErrors[d.trialIndex] = { correct: 0, incorrect: 0 };
+        }
+        if (d.isCorrect) {
+          trialErrors[d.trialIndex].correct++;
+        } else {
+          trialErrors[d.trialIndex].incorrect++;
+        }
+      });
+      
+      const trials = Object.keys(trialErrors).sort((a, b) => parseInt(a) - parseInt(b));
+      
+      const trace = {
+        x: trials,
+        y: trials.map(t => trialErrors[t].incorrect),
+        type: 'bar',
+        marker: { color: '#ef4444' }
+      };
+      
+      const layout = {
+        xaxis: { title: 'Trial Number', rangemode: 'tozero' },
+        yaxis: { title: 'Number of Errors', rangemode: 'tozero' }
+      };
+      
+      Plotly.newPlot('errors-by-trial', [trace], layout);
+    }
+
+    function plotPerformanceTime(data) {
+      const goTrials = data.filter(d => d.trialType === 'go');
+      
+      if (goTrials.length === 0) {
+        Plotly.newPlot('performance-time', [], { title: 'No performance data available' });
+        return;
+      }
+      
+      const traceRT = {
+        x: goTrials.map(d => d.trialIndex),
+        y: goTrials.map(d => d.rt || null),
+        mode: 'lines+markers',
+        type: 'scatter',
+        name: 'Reaction Time',
+        line: { color: '#667eea', width: 2 },
+        marker: { size: 6 }
+      };
+      
+      const traceAccuracy = {
+        x: goTrials.map(d => d.trialIndex),
+        y: goTrials.map(d => d.isCorrect ? 100 : 0),
+        mode: 'markers',
+        type: 'scatter',
+        name: 'Accuracy',
+        marker: { size: 8, color: goTrials.map(d => d.isCorrect ? '#10b981' : '#ef4444') },
+        yaxis: 'y2'
+      };
+      
+      const layout = {
+        xaxis: { title: 'Trial Number', rangemode: 'tozero' },
+        yaxis: { title: 'Reaction Time (ms)', rangemode: 'tozero' },
+        yaxis2: {
+          title: 'Accuracy',
+          overlaying: 'y',
+          side: 'right',
+          range: [-10, 110]
+        },
+        showlegend: true
+      };
+      
+      Plotly.newPlot('performance-time', [traceRT, traceAccuracy], layout);
+    }
+
+    function plotPhaseComparison() {
+      const practiceData = allData.filter(d => d.phase === 'Practice');
+      const realData = allData.filter(d => d.phase === 'Real Study');
+      
+      // Box plot comparison
+      const practiceRTs = practiceData.filter(d => d.trialType === 'go' && d.rt).map(d => d.rt);
+      const realRTs = realData.filter(d => d.trialType === 'go' && d.rt).map(d => d.rt);
+      
+      const boxTraces = [];
+      if (practiceRTs.length > 0) {
+        boxTraces.push({
+          y: practiceRTs,
+          type: 'box',
+          name: 'Practice',
+          marker: { color: '#667eea' }
         });
-        
-        // Also check if data is in localStorage (fallback)
-        window.addEventListener('load', () => {
-            const storedData = localStorage.getItem('goNoGoResults');
-            if (storedData && allData.length === 0) {
-                allData = JSON.parse(storedData);
-                initializeDashboard();
-            }
+      }
+      if (realRTs.length > 0) {
+        boxTraces.push({
+          y: realRTs,
+          type: 'box',
+          name: 'Real Study',
+          marker: { color: '#764ba2' }
         });
+      }
+      
+      Plotly.newPlot('phase-comparison-box', boxTraces, {
+        yaxis: { title: 'Reaction Time (ms)', rangemode: 'tozero' }
+      });
+      
+      // Accuracy comparison
+      const practiceCorrect = practiceData.filter(d => d.isCorrect && d.trialType !== 'pending').length;
+      const practiceTotal = practiceData.filter(d => d.trialType !== 'pending').length;
+      const realCorrect = realData.filter(d => d.isCorrect && d.trialType !== 'pending').length;
+      const realTotal = realData.filter(d => d.trialType !== 'pending').length;
+      
+      const accTrace = {
+        x: ['Practice', 'Real Study'],
+        y: [
+          practiceTotal > 0 ? (practiceCorrect / practiceTotal) * 100 : 0,
+          realTotal > 0 ? (realCorrect / realTotal) * 100 : 0
+        ],
+        type: 'bar',
+        marker: { color: ['#667eea', '#764ba2'] }
+      };
+      
+      Plotly.newPlot('phase-comparison-accuracy', [accTrace], {
+        yaxis: { title: 'Accuracy (%)', range: [0, 100] }
+      });
+      
+      // Movement time comparison
+      const practiceMoveTime = practiceData.filter(d => d.trialType === 'go' && d.totalMovementTimeMs).map(d => d.totalMovementTimeMs);
+      const realMoveTime = realData.filter(d => d.trialType === 'go' && d.totalMovementTimeMs).map(d => d.totalMovementTimeMs);
+      
+      const moveTraces = [];
+      if (practiceMoveTime.length > 0) {
+        moveTraces.push({
+          y: practiceMoveTime,
+          type: 'box',
+          name: 'Practice',
+          marker: { color: '#667eea' }
+        });
+      }
+      if (realMoveTime.length > 0) {
+        moveTraces.push({
+          y: realMoveTime,
+          type: 'box',
+          name: 'Real Study',
+          marker: { color: '#764ba2' }
+        });
+      }
+      
+      Plotly.newPlot('phase-comparison-movement', moveTraces, {
+        yaxis: { title: 'Movement Time (ms)', rangemode: 'tozero' }
+      });
+      
+      // Peak velocity comparison
+      const practicePV = practiceData.filter(d => d.trialType === 'go' && d.peakVelocityPxPerSec).map(d => d.peakVelocityPxPerSec);
+      const realPV = realData.filter(d => d.trialType === 'go' && d.peakVelocityPxPerSec).map(d => d.peakVelocityPxPerSec);
+      
+      const pvTraces = [];
+      if (practicePV.length > 0) {
+        pvTraces.push({
+          y: practicePV,
+          type: 'box',
+          name: 'Practice',
+          marker: { color: '#667eea' }
+        });
+      }
+      if (realPV.length > 0) {
+        pvTraces.push({
+          y: realPV,
+          type: 'box',
+          name: 'Real Study',
+          marker: { color: '#764ba2' }
+        });
+      }
+      
+      Plotly.newPlot('phase-comparison-velocity', pvTraces, {
+        yaxis: { title: 'Peak Velocity (px/s)', rangemode: 'tozero' }
+      });
+    }
+
+    function updateDataTable(data) {
+      const tbody = document.getElementById('data-table-body');
+      tbody.innerHTML = '';
+      
+      data.forEach(d => {
+        const row = tbody.insertRow();
+        row.className = d.isCorrect ? 'bg-green-50' : 'bg-red-50';
         
-        function initializeDashboard() {
-            document.getElementById('loading').classList.add('hidden');
-            document.getElementById('dashboard').classList.remove('hidden');
-            updateDashboard();
-        }
-        
-        function setPhase(phase) {
-            currentPhase = phase;
-            document.querySelectorAll('.phase-toggle button').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            document.getElementById(`btn-${phase}`).classList.add('active');
-            
-            // Show/hide comparison section
-            document.getElementById('comparison-section').style.display = 
-                phase === 'both' ? 'block' : 'none';
-            
-            updateDashboard();
-        }
-        
-        function filterData() {
-            if (currentPhase === 'both') {
-                return allData;
-            } else if (currentPhase === 'practice') {
-                return allData.filter(d => d.phase === 'Practice');
-            } else {
-                return allData.filter(d => d.phase === 'Real Study');
-            }
-        }
-        
-        function updateDashboard() {
-            const data = filterData();
-            updateStats(data);
-            plotRTHistogram(data);
-            plotRTBoxplot(data);
-            plotRTByTrial(data);
-            plotErrorTypes(data);
-            plotErrorsByTrial(data);
-            plotRTvsTrial(data);
-            updateDataTable(data);
-            
-            if (currentPhase === 'both') {
-                plotPhaseComparison();
-            }
-        }
-        
-        function updateStats(data) {
-            const successfulTrials = data.filter(d => d.isCorrect && d.trialType !== 'pending');
-            const goTrials = data.filter(d => d.trialType === 'go' && d.rt !== null && d.rt !== undefined);
-            const rts = goTrials.map(d => d.rt);
-            
-            document.getElementById('stat-total-trials').textContent = 
-                [...new Set(data.map(d => `${d.phase}-${d.trialIndex}`))].length;
-            
-            const accuracy = successfulTrials.length / data.filter(d => d.trialType !== 'pending').length * 100;
-            document.getElementById('stat-accuracy').textContent = 
-                accuracy.toFixed(1) + '%';
-            
-            if (rts.length > 0) {
-                const mean = rts.reduce((a, b) => a + b, 0) / rts.length;
-                document.getElementById('stat-mean-rt').textContent = mean.toFixed(0);
-                
-                const sorted = [...rts].sort((a, b) => a - b);
-                const median = sorted.length % 2 === 0 
-                    ? (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2
-                    : sorted[Math.floor(sorted.length / 2)];
-                document.getElementById('stat-median-rt').textContent = median.toFixed(0);
-                
-                const variance = rts.reduce((sum, rt) => sum + Math.pow(rt - mean, 2), 0) / rts.length;
-                const std = Math.sqrt(variance);
-                document.getElementById('stat-std-rt').textContent = std.toFixed(1);
-                
-                const meanReciprocal = rts.reduce((sum, rt) => sum + (1000 / rt), 0) / rts.length;
-                document.getElementById('stat-mean-reciprocal').textContent = meanReciprocal.toFixed(3);
-            } else {
-                document.getElementById('stat-mean-rt').textContent = 'N/A';
-                document.getElementById('stat-median-rt').textContent = 'N/A';
-                document.getElementById('stat-std-rt').textContent = 'N/A';
-                document.getElementById('stat-mean-reciprocal').textContent = 'N/A';
-            }
-            
-            const goCorrect = data.filter(d => d.trialType === 'go' && d.isCorrect).length;
-            const goTotal = data.filter(d => d.trialType === 'go').length;
-            document.getElementById('stat-go-accuracy').textContent = 
-                goTotal > 0 ? ((goCorrect / goTotal) * 100).toFixed(1) + '%' : 'N/A';
-        }
-        
-        function plotRTHistogram(data) {
-            const rts = data.filter(d => d.trialType === 'go' && d.rt).map(d => d.rt);
-            
-            if (rts.length === 0) {
-                Plotly.newPlot('rt-histogram', [], {title: 'No reaction time data available'});
-                return;
-            }
-            
-            const mean = rts.reduce((a, b) => a + b, 0) / rts.length;
-            const variance = rts.reduce((sum, rt) => sum + Math.pow(rt - mean, 2), 0) / rts.length;
-            const std = Math.sqrt(variance);
-            
-            // Generate normal curve
-            const min = Math.min(...rts);
-            const max = Math.max(...rts);
-            const xValues = [];
-            const yValues = [];
-            for (let x = min - std; x <= max + std; x += (max - min) / 100) {
-                xValues.push(x);
-                const exponent = -Math.pow(x - mean, 2) / (2 * variance);
-                yValues.push((1 / (std * Math.sqrt(2 * Math.PI))) * Math.exp(exponent) * rts.length * 50);
-            }
-            
-            const trace1 = {
-                x: rts,
-                type: 'histogram',
-                name: 'Reaction Times',
-                marker: { color: '#667eea' },
-                opacity: 0.7,
-                xbins: {
-                    size: 100
-                }
-            };
-            
-            const trace2 = {
-                x: xValues,
-                y: yValues,
-                type: 'scatter',
-                mode: 'lines',
-                name: 'Normal Distribution',
-                line: { color: '#764ba2', width: 3 }
-            };
-            
-            const layout = {
-                title: 'Reaction Time Distribution with Normal Curve',
-                xaxis: { 
-                    title: 'Reaction Time (ms)',
-                    dtick: 100,
-                    rangemode: 'tozero'
-                },
-                yaxis: { 
-                    title: 'Frequency',
-                    rangemode: 'tozero'
-                },
-                showlegend: true
-            };
-            
-            Plotly.newPlot('rt-histogram', [trace1, trace2], layout);
-        }
-        
-        function plotRTBoxplot(data) {
-            const practiceRTs = data.filter(d => d.phase === 'Practice' && d.trialType === 'go' && d.rt).map(d => d.rt);
-            const realRTs = data.filter(d => d.phase === 'Real Study' && d.trialType === 'go' && d.rt).map(d => d.rt);
-            
-            const traces = [];
-            
-            if (currentPhase === 'both') {
-                if (practiceRTs.length > 0) {
-                    traces.push({
-                        y: practiceRTs,
-                        type: 'box',
-                        name: 'Practice',
-                        marker: { color: '#667eea' }
-                    });
-                }
-                if (realRTs.length > 0) {
-                    traces.push({
-                        y: realRTs,
-                        type: 'box',
-                        name: 'Real Study',
-                        marker: { color: '#764ba2' }
-                    });
-                }
-            } else {
-                const rts = data.filter(d => d.trialType === 'go' && d.rt).map(d => d.rt);
-                if (rts.length > 0) {
-                    traces.push({
-                        y: rts,
-                        type: 'box',
-                        name: currentPhase === 'practice' ? 'Practice' : 'Real Study',
-                        marker: { color: currentPhase === 'practice' ? '#667eea' : '#764ba2' }
-                    });
-                }
-            }
-            
-            const layout = {
-                title: 'Reaction Time Box Plot',
-                yaxis: { 
-                    title: 'Reaction Time (ms)',
-                    dtick: 100,
-                    rangemode: 'tozero'
-                }
-            };
-            
-            Plotly.newPlot('rt-boxplot', traces, layout);
-        }
-        
-        function plotRTByTrial(data) {
-            const goData = data.filter(d => d.trialType === 'go' && d.rt);
-            
-            const trace = {
-                x: goData.map(d => d.trialIndex),
-                y: goData.map(d => d.rt),
-                mode: 'lines+markers',
-                type: 'scatter',
-                name: 'Reaction Time',
-                line: { color: '#667eea', width: 2 },
-                marker: { size: 8, color: '#764ba2' }
-            };
-            
-            const layout = {
-                title: 'Reaction Time Across Trials',
-                xaxis: { 
-                    title: 'Trial Number',
-                    rangemode: 'tozero'
-                },
-                yaxis: { 
-                    title: 'Reaction Time (ms)',
-                    dtick: 100,
-                    rangemode: 'tozero'
-                }
-            };
-            
-            Plotly.newPlot('rt-by-trial', [trace], layout);
-        }
-        
-        function plotErrorTypes(data) {
-            const errors = data.filter(d => !d.isCorrect);
-            
-            if (errors.length === 0) {
-                document.getElementById('error-types').innerHTML = 
-                    '<div class="flex items-center justify-center h-full text-gray-500 text-lg">No errors recorded</div>';
-                return;
-            }
-            
-            const errorCounts = {};
-            errors.forEach(d => {
-                errorCounts[d.errorCategory] = (errorCounts[d.errorCategory] || 0) + 1;
-            });
-            
-            const trace = {
-                labels: Object.keys(errorCounts),
-                values: Object.values(errorCounts),
-                type: 'pie',
-                marker: {
-                    colors: ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6']
-                }
-            };
-            
-            const layout = {
-                title: ''
-            };
-            
-            Plotly.newPlot('error-types', [trace], layout);
-        }
-        
-        function plotErrorsByTrial(data) {
-            const errors = data.filter(d => !d.isCorrect);
-            
-            if (errors.length === 0) {
-                document.getElementById('errors-by-trial').innerHTML = 
-                    '<div class="flex items-center justify-center h-full text-gray-500 text-lg">No errors recorded</div>';
-                return;
-            }
-            
-            const trialErrors = {};
-            data.forEach(d => {
-                if (!trialErrors[d.trialIndex]) {
-                    trialErrors[d.trialIndex] = { correct: 0, incorrect: 0 };
-                }
-                if (d.isCorrect) {
-                    trialErrors[d.trialIndex].correct++;
-                } else {
-                    trialErrors[d.trialIndex].incorrect++;
-                }
-            });
-            
-            const trials = Object.keys(trialErrors).sort((a, b) => parseInt(a) - parseInt(b));
-            
-            const trace = {
-                x: trials,
-                y: trials.map(t => trialErrors[t].incorrect),
-                type: 'bar',
-                name: 'Errors',
-                marker: { color: '#ef4444' }
-            };
-            
-            const layout = {
-                title: '',
-                xaxis: { 
-                    title: 'Trial Number',
-                    rangemode: 'tozero'
-                },
-                yaxis: { 
-                    title: 'Number of Errors',
-                    rangemode: 'tozero'
-                }
-            };
-            
-            Plotly.newPlot('errors-by-trial', [trace], layout);
-        }
-        
-        function plotRTvsTrial(data) {
-            const goData = data.filter(d => d.trialType === 'go' && d.rt);
-            
-            const trace = {
-                x: goData.map(d => d.trialIndex),
-                y: goData.map(d => 1000 / d.rt),
-                mode: 'markers',
-                type: 'scatter',
-                name: '1/RT',
-                marker: { 
-                    size: 10, 
-                    color: goData.map(d => d.rt),
-                    colorscale: 'Viridis',
-                    showscale: true,
-                    colorbar: { title: 'RT (ms)' }
-                }
-            };
-            
-            const layout = {
-                title: 'Reciprocal Reaction Time (Speed) by Trial',
-                xaxis: { 
-                    title: 'Trial Number',
-                    rangemode: 'tozero'
-                },
-                yaxis: { 
-                    title: '1/RT (Higher = Faster)',
-                    rangemode: 'tozero'
-                }
-            };
-            
-            Plotly.newPlot('rt-vs-trial', [trace], layout);
-        }
-        
-        function plotPhaseComparison() {
-            const practiceData = allData.filter(d => d.phase === 'Practice');
-            const realData = allData.filter(d => d.phase === 'Real Study');
-            
-            // Box plot comparison
-            const practiceRTs = practiceData.filter(d => d.trialType === 'go' && d.rt).map(d => d.rt);
-            const realRTs = realData.filter(d => d.trialType === 'go' && d.rt).map(d => d.rt);
-            
-            const boxTraces = [];
-            if (practiceRTs.length > 0) {
-                boxTraces.push({
-                    y: practiceRTs,
-                    type: 'box',
-                    name: 'Practice',
-                    marker: { color: '#667eea' }
-                });
-            }
-            if (realRTs.length > 0) {
-                boxTraces.push({
-                    y: realRTs,
-                    type: 'box',
-                    name: 'Real Study',
-                    marker: { color: '#764ba2' }
-                });
-            }
-            
-            Plotly.newPlot('phase-comparison-box', boxTraces, {
-                yaxis: { 
-                    title: 'Reaction Time (ms)',
-                    dtick: 100,
-                    rangemode: 'tozero'
-                }
-            });
-            
-            // Accuracy comparison
-            const practiceCorrect = practiceData.filter(d => d.isCorrect && d.trialType !== 'pending').length;
-            const practiceTotal = practiceData.filter(d => d.trialType !== 'pending').length;
-            const realCorrect = realData.filter(d => d.isCorrect && d.trialType !== 'pending').length;
-            const realTotal = realData.filter(d => d.trialType !== 'pending').length;
-            
-            const accTrace = {
-                x: ['Practice', 'Real Study'],
-                y: [
-                    practiceTotal > 0 ? (practiceCorrect / practiceTotal) * 100 : 0,
-                    realTotal > 0 ? (realCorrect / realTotal) * 100 : 0
-                ],
-                type: 'bar',
-                marker: { color: ['#667eea', '#764ba2'] }
-            };
-            
-            Plotly.newPlot('phase-comparison-accuracy', [accTrace], {
-                yaxis: { 
-                    title: 'Accuracy (%)',
-                    rangemode: 'tozero'
-                }
-            });
-        }
-        
-        function updateDataTable(data) {
-            const tbody = document.getElementById('data-table-body');
-            tbody.innerHTML = '';
-            
-            data.forEach(d => {
-                const row = tbody.insertRow();
-                row.className = d.isCorrect ? 'bg-green-50' : 'bg-red-50';
-                row.insertCell(0).textContent = d.phase;
-                row.insertCell(1).textContent = d.trialIndex;
-                row.insertCell(2).textContent = d.trialType;
-                row.insertCell(3).textContent = d.isCorrect ? 'Yes' : 'No';
-                row.insertCell(4).textContent = d.errorCategory || 'None';
-                row.insertCell(5).textContent = d.rt ? d.rt.toFixed(0) : '-';
-            });
-        }
-    </script>
+        row.insertCell(0).textContent = d.phase;
+        row.insertCell(1).textContent = d.trialIndex;
+        row.insertCell(2).textContent = d.trialType;
+        row.insertCell(3).textContent = d.isCorrect ? 'Yes' : 'No';
+        row.insertCell(4).textContent = d.errorCategory || 'None';
+        row.insertCell(5).textContent = d.rt != null ? Number(d.rt).toFixed(0) : '-';
+        row.insertCell(6).textContent = d.movementOnsetTimeMs != null ? Number(d.movementOnsetTimeMs).toFixed(0) : '-';
+        row.insertCell(7).textContent = d.totalMovementTimeMs != null ? Number(d.totalMovementTimeMs).toFixed(0) : '-';
+        row.insertCell(8).textContent = d.peakVelocityTimeMs != null ? Number(d.peakVelocityTimeMs).toFixed(0) : '-';
+        row.insertCell(9).textContent = d.responseTimeMs != null ? Number(d.responseTimeMs).toFixed(0) : '-';
+        row.insertCell(10).textContent = d.peakVelocityPxPerSec != null ? Number(d.peakVelocityPxPerSec).toFixed(1) : '-';
+        row.insertCell(11).textContent = d.pathLengthPx != null ? Number(d.pathLengthPx).toFixed(1) : '-';
+        row.insertCell(12).textContent = d.directionReversals != null ? d.directionReversals : '-';
+        row.insertCell(13).textContent = (d.startX != null && d.startY != null) ? `(${Math.round(d.startX)}, ${Math.round(d.startY)})` : '-';
+        row.insertCell(14).textContent = (d.goalX != null && d.goalY != null) ? `(${Math.round(d.goalX)}, ${Math.round(d.goalY)})` : '-';
+        row.insertCell(15).textContent = (d.endX != null && d.endY != null) ? `(${Math.round(d.endX)}, ${Math.round(d.endY)})` : '-';
+        row.insertCell(16).textContent = d.maxNoGoDisplacementPx != null ? Number(d.maxNoGoDisplacementPx).toFixed(1) : '-';
+      });
+    }
+  </script>
+
 </body>
 </html>
