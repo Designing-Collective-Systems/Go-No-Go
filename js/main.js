@@ -4,7 +4,10 @@
 const CONFIG = {
     circlePosition: 'fixed',
     showFeedback: true,
-    showInstructionFeedback: true
+    showInstructionFeedback: true,
+    // Delay (ms) between GO stimulus and "Put your finger down" prompt.
+    // Only applies to practice and real phases (not tutorial).
+    goPromptDelay: { min: 2000, max: 4000 }
 };
 
 
@@ -107,7 +110,10 @@ const STATE = {
     sessionStartTime: null,
     isInTutorial: false,
     tutorialStepIndex: 0,
-    tutorialTrialComplete: false
+    tutorialTrialComplete: false,
+    rtRelease: null,       // Time from GO onset to finger lift
+    putDownPromptTime: null, // Timestamp when "Put your finger down" appeared
+    rtDown: null           // Time from "Put your finger down" prompt to finger recontact
 };
 
 
@@ -116,6 +122,7 @@ let stimulusTimeout = null;
 let feedbackTimeout = null;
 let goTimeout = null;
 let noGoTimeout = null;
+let goDelayTimeout = null;
 
 
 // Elements - UPDATED: Removed status and feedback text elements
@@ -360,10 +367,10 @@ function updateTutorialUI() {
 
     if (text) {
         els.tutorialStimulusText.classList.remove('opacity-0');
-        els.tutorialStimulusText.classList.add('animate-fadeInDown');
+        // els.tutorialStimulusText.classList.add('animate-fadeInDown');
     } else {
         els.tutorialStimulusText.classList.add('opacity-0');
-        els.tutorialStimulusText.classList.remove('animate-fadeInDown');
+        // els.tutorialStimulusText.classList.remove('animate-fadeInDown');
     }
 }
 
@@ -389,7 +396,7 @@ function retryTutorialStep() {
     STATE.trialState = 'waiting';
     els.tutorialStimulusText.innerText = '';
     els.tutorialStimulusText.classList.add('opacity-0');
-    els.tutorialStimulusText.classList.remove('animate-fadeInDown');
+    // els.tutorialStimulusText.classList.remove('animate-fadeInDown');
     setupTutorialTrial(step);
     updateTutorialUI();
 }
@@ -436,7 +443,7 @@ function updateTutorialButtonPosition(xFactor, yFactor) {
 
 function updateTutorialButtonAppearance() {
     const btn = els.tutorialButton;
-    btn.className = `w-32 h-32 rounded-full bg-blue-500 shadow-2xl absolute cursor-pointer focus:outline-none touch-none transition-transform duration-300 ease-out`;
+    btn.className = `w-32 h-32 rounded-full bg-blue-500 shadow-2xl absolute cursor-pointer focus:outline-none touch-none`;
 
 
     if (STATE.trialState === 'waiting') {
@@ -508,7 +515,10 @@ function downloadCSV() {
         'Is Correct',
         'Result Type',
         'Error Category',
-        'Reaction Time (ms)',
+        'RT-Release (ms)',
+        'RT-Down (ms)',
+        'Response Time (ms)',
+        'Slip Duration (ms)',
         'Recontact Time (ms)',
         'Touch X',
         'Touch Y',
@@ -523,7 +533,10 @@ function downloadCSV() {
         trial.isCorrect,
         trial.resultType,
         trial.errorCategory,
-        trial.rt || '',
+        trial.rtRelease != null ? trial.rtRelease : (trial.rt || ''),
+        trial.rtDown != null ? trial.rtDown : '',
+        trial.responseTime != null ? trial.responseTime : '',
+        trial.slipDuration != null ? trial.slipDuration : '',
         trial.recontactTime || '',
         trial.touchX,
         trial.touchY,
@@ -564,8 +577,10 @@ function showResults() {
         'Correct',
         'Result',
         'Error',
-        'RT (ms)',
-        'Recontact (ms)',
+        'RT-Release (ms)',
+        'RT-Down (ms)',
+        'Response Time (ms)',
+        'Slip Duration (ms)',
         'Touch X',
         'Touch Y',
         'Timestamp'
@@ -588,8 +603,10 @@ function showResults() {
         tableHTML += `<td class="border border-slate-600 px-4 py-2">${trial.isCorrect}</td>`;
         tableHTML += `<td class="border border-slate-600 px-4 py-2">${trial.resultType}</td>`;
         tableHTML += `<td class="border border-slate-600 px-4 py-2">${trial.errorCategory}</td>`;
-        tableHTML += `<td class="border border-slate-600 px-4 py-2">${trial.rt || ''}</td>`;
-        tableHTML += `<td class="border border-slate-600 px-4 py-2">${trial.recontactTime || ''}</td>`;
+        tableHTML += `<td class="border border-slate-600 px-4 py-2">${trial.rtRelease != null ? trial.rtRelease : (trial.rt || '')}</td>`;
+        tableHTML += `<td class="border border-slate-600 px-4 py-2">${trial.rtDown != null ? trial.rtDown : ''}</td>`;
+        tableHTML += `<td class="border border-slate-600 px-4 py-2">${trial.responseTime != null ? trial.responseTime : ''}</td>`;
+        tableHTML += `<td class="border border-slate-600 px-4 py-2">${trial.slipDuration != null ? trial.slipDuration : ''}</td>`;
         tableHTML += `<td class="border border-slate-600 px-4 py-2">${trial.touchX}</td>`;
         tableHTML += `<td class="border border-slate-600 px-4 py-2">${trial.touchY}</td>`;
         tableHTML += `<td class="border border-slate-600 px-4 py-2">${trial.timestamp}</td>`;
@@ -727,9 +744,12 @@ function retryTaskTrial() {
     STATE.currentTrialConfig = null;
     STATE.currentRT = null;
     STATE.noGoSlipStartTime = null;
+    STATE.rtRelease = null;
+    STATE.putDownPromptTime = null;
+    STATE.rtDown = null;
     els.stimulusText.innerText = '';
     els.stimulusText.classList.add('opacity-0');
-    els.stimulusText.classList.remove('animate-fadeInDown');
+    // els.stimulusText.classList.remove('animate-fadeInDown');
 
 
     setTrialState('waiting');
@@ -751,6 +771,7 @@ function retryTaskTrial() {
 // ================= TASK LOGIC =================
 function handlePressStart() {
     if (STATE.trialState === 'feedback') return;
+    if (STATE.trialState === 'go-delay') return;  // Ignore presses during the delay
 
 
     if (STATE.trialState === 'stimulus' && STATE.currentTrialConfig?.type === 'nogo' && STATE.noGoSlipStartTime) {
@@ -764,7 +785,8 @@ function handlePressStart() {
             resultType: 'Slip Recorded',
             errorCategory: 'Partial Release / Slip',
             rt: STATE.noGoSlipStartTime - STATE.stimulusOnsetTime,
-            recontactTime: timeToReapply
+            recontactTime: timeToReapply,
+            slipDuration: timeToReapply
         });
         STATE.noGoSlipStartTime = null;
         return;
@@ -794,6 +816,7 @@ function handlePressStart() {
 
 
     } else if (STATE.trialState === 'released') {
+        STATE.rtDown = Date.now() - STATE.putDownPromptTime;
         STATE.isHolding = true;
         evaluateGoTrial(true);
     }
@@ -825,12 +848,18 @@ function handlePressEnd() {
         if (STATE.currentTrialConfig.type === 'go') {
             const reactionTime = releaseTime - STATE.stimulusOnsetTime;
             STATE.currentRT = reactionTime;
-
+            STATE.rtRelease = reactionTime;
 
             clearTimeout(goTimeout);
             setPositionForNextPhase();
-            setTrialState('released');
-            updateUI();
+            setTrialState('go-delay');
+
+            // Wait a randomized delay before showing "Put your finger down"
+            goDelayTimeout = setTimeout(() => {
+                STATE.putDownPromptTime = Date.now();
+                setTrialState('released');
+                updateUI();
+            }, getRandomGoDelay());
         } else {
             STATE.noGoSlipStartTime = releaseTime;
         }
@@ -863,12 +892,18 @@ function runStimulusLogic() {
 
 
 function evaluateGoTrial(heldAgain) {
+    const responseTime = (STATE.rtRelease != null && STATE.rtDown != null)
+        ? STATE.rtRelease + STATE.rtDown
+        : null;
     logMetric({
         trialType: 'go',
         isCorrect: true,
         resultType: 'Success',
         errorCategory: 'None',
-        rt: STATE.currentRT
+        rt: STATE.currentRT,
+        rtRelease: STATE.rtRelease,
+        rtDown: STATE.rtDown,
+        responseTime: responseTime
     });
     setTrialState('feedback');
     advanceTrial();
@@ -912,9 +947,12 @@ function advanceTrial() {
             STATE.currentTrialConfig = null;
             STATE.currentRT = null;
             STATE.noGoSlipStartTime = null;
+            STATE.rtRelease = null;
+            STATE.putDownPromptTime = null;
+            STATE.rtDown = null;
             els.stimulusText.innerText = '';
             els.stimulusText.classList.add('opacity-0');
-            els.stimulusText.classList.remove('animate-fadeInDown');
+            // els.stimulusText.classList.remove('animate-fadeInDown');
 
 
             const nextConfig = sequence[STATE.currentTrialIndex];
@@ -1001,6 +1039,13 @@ function clearAllTimeouts() {
     if (feedbackTimeout) clearTimeout(feedbackTimeout);
     if (goTimeout) clearTimeout(goTimeout);
     if (noGoTimeout) clearTimeout(noGoTimeout);
+    if (goDelayTimeout) clearTimeout(goDelayTimeout);
+}
+
+
+function getRandomGoDelay() {
+    const { min, max } = CONFIG.goPromptDelay;
+    return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 
@@ -1028,6 +1073,9 @@ function updateUI() {
             text = 'NO GO';
             color = '#ef4444'; // RED
         }
+    } else if (trialState === 'go-delay') {
+        text = '';
+        color = '#000000';
     } else if (trialState === 'released') {
         text = 'Put your finger down';
         color = '#10b981'; // GREEN
@@ -1042,14 +1090,14 @@ function updateUI() {
 
     if (text) {
         els.stimulusText.classList.remove('opacity-0');
-        els.stimulusText.classList.add('animate-fadeInDown');
+        // els.stimulusText.classList.add('animate-fadeInDown');
     } else {
         els.stimulusText.classList.add('opacity-0');
-        els.stimulusText.classList.remove('animate-fadeInDown');
+        // els.stimulusText.classList.remove('animate-fadeInDown');
     }
 
 
-    btn.className = `w-32 h-32 rounded-full bg-blue-500 shadow-2xl absolute cursor-pointer focus:outline-none touch-none transition-transform duration-300 ease-out`;
+    btn.className = `w-32 h-32 rounded-full bg-blue-500 shadow-2xl absolute cursor-pointer focus:outline-none touch-none`;
     if (trialState === 'waiting') btn.classList.add('hover:scale-105', 'active:scale-95');
     else if (trialState === 'holding') btn.classList.add('scale-95');
     else if (trialState === 'stimulus' || trialState === 'released') btn.classList.add('scale-100');

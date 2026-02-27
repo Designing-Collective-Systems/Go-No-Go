@@ -3,640 +3,765 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Go/No-Go Results Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Go/No-Go Results</title>
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Sora:wght@300;400;600;700&display=swap');
-        
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #f7f7f5;
+            --surface: #ffffff;
+            --border: #e5e5e2;
+            --border-strong: #d0d0cc;
+            --text: #1a1a18;
+            --text-secondary: #6b6b66;
+            --text-muted: #9b9b96;
+            --accent: #1a1a18;
+            --go: #16a34a;
+            --nogo: #dc2626;
+            --warning: #d97706;
+            --mono: 'DM Mono', monospace;
+        }
+
         body {
-            font-family: 'Sora', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
             min-height: 100vh;
+            font-size: 14px;
+            line-height: 1.5;
         }
-        
-        .mono {
-            font-family: 'JetBrains Mono', monospace;
+
+        /* ── Layout ── */
+        #loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            font-size: 13px;
+            color: var(--text-muted);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
         }
-        
-        .card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 16px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            padding: 24px;
-            margin-bottom: 24px;
+
+        #dashboard { display: none; }
+
+        .page-header {
+            border-bottom: 1px solid var(--border);
+            background: var(--surface);
+            padding: 20px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
-        
-        .stat-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 12px;
-            padding: 20px;
-            text-align: center;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+
+        .page-title {
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
         }
-        
+
+        .page-title span {
+            font-weight: 300;
+            color: var(--text-secondary);
+        }
+
+        .main-content {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 32px 24px 64px;
+        }
+
+        /* ── Phase Toggle ── */
         .phase-toggle {
             display: inline-flex;
-            background: #f1f5f9;
-            border-radius: 12px;
-            padding: 4px;
+            border: 1px solid var(--border-strong);
+            border-radius: 6px;
+            overflow: hidden;
+            background: var(--surface);
         }
-        
+
         .phase-toggle button {
-            padding: 8px 20px;
-            border-radius: 8px;
+            padding: 6px 16px;
             border: none;
             background: transparent;
             cursor: pointer;
-            transition: all 0.2s;
-            font-weight: 600;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: background 0.12s, color 0.12s;
+            border-right: 1px solid var(--border-strong);
         }
-        
+
+        .phase-toggle button:last-child { border-right: none; }
+
         .phase-toggle button.active {
-            background: white;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            background: var(--accent);
+            color: #ffffff;
         }
-        
-        .section-title {
-            font-size: 24px;
-            font-weight: 700;
+
+        /* ── Section ── */
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-muted);
             margin-bottom: 16px;
-            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
-        
-        .loading {
-            text-align: center;
-            padding: 60px;
-            color: white;
-            font-size: 24px;
+
+        .section-label::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
         }
+
+        /* ── Stat Grid ── */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 1px;
+            background: var(--border);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .stat-cell {
+            background: var(--surface);
+            padding: 20px;
+        }
+
+        .stat-value {
+            font-family: var(--mono);
+            font-size: 22px;
+            font-weight: 500;
+            letter-spacing: -0.02em;
+            color: var(--text);
+            line-height: 1.2;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .stat-value.go { color: var(--go); }
+        .stat-value.nogo { color: var(--nogo); }
+        .stat-value.warn { color: var(--warning); }
+
+        /* ── Chart Card ── */
+        .chart-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .chart-card + .chart-card { margin-top: 12px; }
+
+        .chart-header {
+            padding: 16px 20px 12px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+        }
+
+        .chart-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .chart-subtitle {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .chart-body {
+            padding: 4px;
+        }
+
+        .chart-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        @media (max-width: 680px) {
+            .chart-grid { grid-template-columns: 1fr; }
+            .stat-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        .empty-state {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 160px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* ── Data Table ── */
+        .table-wrap { overflow-x: auto; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12.5px;
+        }
+
+        thead th {
+            text-align: left;
+            padding: 10px 14px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        tbody td {
+            padding: 9px 14px;
+            border-bottom: 1px solid var(--border);
+            font-family: var(--mono);
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        tbody tr:last-child td { border-bottom: none; }
+
+        tbody tr:hover td { background: var(--bg); }
+
+        .tag {
+            display: inline-block;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        .tag-go { background: #dcfce7; color: var(--go); }
+        .tag-nogo { background: #fee2e2; color: var(--nogo); }
+        .tag-yes { background: #dcfce7; color: var(--go); }
+        .tag-no { background: #fee2e2; color: var(--nogo); }
+        .tag-slip { background: #fef3c7; color: var(--warning); }
+
+        /* ── Close button ── */
+        .close-btn {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            background: none;
+            border: 1px solid var(--border-strong);
+            border-radius: 6px;
+            padding: 6px 14px;
+            cursor: pointer;
+            transition: border-color 0.12s, color 0.12s;
+        }
+
+        .close-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        /* Plotly overrides */
+        .plotly .modebar { display: none !important; }
     </style>
 </head>
 <body>
-    <div id="loading" class="loading">
-        <div>Loading data...</div>
-    </div>
-    
-    <div id="dashboard" class="hidden max-w-7xl mx-auto p-8">
-        <div class="text-center mb-8">
-            <h1 class="text-5xl font-bold text-white mb-4">Go/No-Go Results Dashboard</h1>
-            <p class="text-xl text-white/90">Comprehensive analysis of your task performance</p>
-        </div>
-        
-        <!-- Phase Selection -->
-        <div class="card text-center">
+
+<div id="loading">Loading results&hellip;</div>
+
+<div id="dashboard">
+    <header class="page-header">
+        <div class="page-title">Go/No-Go Task <span>/ Results</span></div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
             <div class="phase-toggle">
                 <button id="btn-practice" onclick="setPhase('practice')">Practice</button>
                 <button id="btn-real" onclick="setPhase('real')">Real Study</button>
                 <button id="btn-both" onclick="setPhase('both')" class="active">Both</button>
             </div>
+            <button class="close-btn" onclick="window.close()">Close</button>
         </div>
-        
-        <!-- Summary Statistics -->
-        <div class="card">
-            <h2 class="section-title">Summary Statistics</h2>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div class="stat-card">
-                    <div class="text-3xl font-bold mono" id="stat-total-trials">-</div>
-                    <div class="text-sm opacity-90 mt-1">Total Trials</div>
+    </header>
+
+    <main class="main-content">
+
+        <!-- Summary stats -->
+        <div class="section">
+            <div class="section-label">Summary</div>
+            <div class="stat-grid">
+                <div class="stat-cell">
+                    <div class="stat-value mono" id="stat-total-trials">—</div>
+                    <div class="stat-label">Total trials</div>
                 </div>
-                <div class="stat-card">
-                    <div class="text-3xl font-bold mono" id="stat-accuracy">-</div>
-                    <div class="text-sm opacity-90 mt-1">Accuracy</div>
+                <div class="stat-cell">
+                    <div class="stat-value" id="stat-accuracy">—</div>
+                    <div class="stat-label">Accuracy</div>
                 </div>
-                <div class="stat-card">
-                    <div class="text-3xl font-bold mono" id="stat-mean-rt">-</div>
-                    <div class="text-sm opacity-90 mt-1">Mean RT (ms)</div>
+                <div class="stat-cell">
+                    <div class="stat-value" id="stat-go-accuracy">—</div>
+                    <div class="stat-label">GO accuracy</div>
                 </div>
-                <div class="stat-card">
-                    <div class="text-3xl font-bold mono" id="stat-median-rt">-</div>
-                    <div class="text-sm opacity-90 mt-1">Median RT (ms)</div>
+                <div class="stat-cell">
+                    <div class="stat-value" id="stat-nogo-accuracy">—</div>
+                    <div class="stat-label">NO GO accuracy</div>
+                </div>
+                <div class="stat-cell">
+                    <div class="stat-value" id="stat-slips">—</div>
+                    <div class="stat-label">NO GO slips</div>
                 </div>
             </div>
         </div>
-        
-        <!-- Reaction Time Analysis -->
-        <div class="card">
-            <h2 class="section-title">Reaction Time Analysis</h2>
-            <div id="rt-histogram" style="height: 400px;"></div>
-        </div>
-        
-        <div class="card">
-            <h2 class="section-title">Reaction Time Distribution</h2>
-            <div id="rt-boxplot" style="height: 300px;"></div>
-        </div>
-        
-        <div class="card">
-            <h2 class="section-title">Reaction Time by Trial</h2>
-            <div id="rt-by-trial" style="height: 350px;"></div>
-        </div>
-        
-        <!-- Error Analysis -->
-        <div class="card">
-            <h2 class="section-title">Error Analysis</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <h3 class="font-semibold mb-3 text-lg">Error Types</h3>
-                    <div id="error-types" style="height: 300px;"></div>
+
+        <!-- RT stats -->
+        <div class="section">
+            <div class="section-label">Reaction Times</div>
+            <div class="stat-grid">
+                <div class="stat-cell">
+                    <div class="stat-value" id="stat-mean-rt-release">—</div>
+                    <div class="stat-label">Mean RT-Release (ms)</div>
                 </div>
-                <div>
-                    <h3 class="font-semibold mb-3 text-lg">Errors by Trial</h3>
-                    <div id="errors-by-trial" style="height: 300px;"></div>
+                <div class="stat-cell">
+                    <div class="stat-value" id="stat-median-rt-release">—</div>
+                    <div class="stat-label">Median RT-Release (ms)</div>
                 </div>
-            </div>
-        </div>
-        
-        <!-- Additional Metrics -->
-        <div class="card">
-            <h2 class="section-title">Additional Metrics</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div class="stat-card">
-                    <div class="text-3xl font-bold mono" id="stat-std-rt">-</div>
-                    <div class="text-sm opacity-90 mt-1">RT Std Dev (ms)</div>
+                <div class="stat-cell">
+                    <div class="stat-value" id="stat-mean-rt-down">—</div>
+                    <div class="stat-label">Mean RT-Down (ms)</div>
                 </div>
-                <div class="stat-card">
-                    <div class="text-3xl font-bold mono" id="stat-mean-reciprocal">-</div>
-                    <div class="text-sm opacity-90 mt-1">Mean 1/RT</div>
+                <div class="stat-cell">
+                    <div class="stat-value" id="stat-mean-response-time">—</div>
+                    <div class="stat-label">Mean Response Time (ms)</div>
                 </div>
-                <div class="stat-card">
-                    <div class="text-3xl font-bold mono" id="stat-go-accuracy">-</div>
-                    <div class="text-sm opacity-90 mt-1">GO Accuracy</div>
+                <div class="stat-cell">
+                    <div class="stat-value" id="stat-std-rt">—</div>
+                    <div class="stat-label">RT-Release SD (ms)</div>
                 </div>
-            </div>
-            <div id="rt-vs-trial" style="height: 350px;"></div>
-        </div>
-        
-        <!-- Phase Comparison (shown only when "Both" is selected) -->
-        <div id="comparison-section" class="card">
-            <h2 class="section-title">Phase Comparison</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <h3 class="font-semibold mb-3 text-lg">RT Distribution Comparison</h3>
-                    <div id="phase-comparison-box" style="height: 300px;"></div>
-                </div>
-                <div>
-                    <h3 class="font-semibold mb-3 text-lg">Accuracy Comparison</h3>
-                    <div id="phase-comparison-accuracy" style="height: 300px;"></div>
+                <div class="stat-cell">
+                    <div class="stat-value" id="stat-mean-slip-duration">—</div>
+                    <div class="stat-label">Mean Slip Duration (ms)</div>
                 </div>
             </div>
         </div>
-        
-        <!-- Raw Data Table -->
-        <div class="card">
-            <h2 class="section-title">Raw Data</h2>
-            <div class="overflow-x-auto">
-                <table id="data-table" class="w-full border-collapse">
-                    <thead>
-                        <tr class="bg-slate-100">
-                            <th class="border border-slate-300 px-4 py-2 text-left">Phase</th>
-                            <th class="border border-slate-300 px-4 py-2 text-left">Trial</th>
-                            <th class="border border-slate-300 px-4 py-2 text-left">Type</th>
-                            <th class="border border-slate-300 px-4 py-2 text-left">Correct</th>
-                            <th class="border border-slate-300 px-4 py-2 text-left">Error</th>
-                            <th class="border border-slate-300 px-4 py-2 text-left">RT (ms)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="data-table-body">
-                    </tbody>
-                </table>
+
+        <!-- RT charts -->
+        <div class="section">
+            <div class="section-label">Reaction Time Distribution</div>
+            <div class="chart-grid">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">RT-Release</div>
+                        <div class="chart-subtitle">GO trials only</div>
+                    </div>
+                    <div class="chart-body" id="chart-rt-release-hist"></div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">RT-Down</div>
+                        <div class="chart-subtitle">Time to recontact after prompt</div>
+                    </div>
+                    <div class="chart-body" id="chart-rt-down-hist"></div>
+                </div>
             </div>
         </div>
-        
-        <div class="text-center mt-8">
-            <button onclick="window.close()" class="bg-white text-purple-700 px-8 py-3 rounded-lg font-semibold hover:bg-purple-50 transition-colors shadow-lg">
-                Close Dashboard
-            </button>
+
+        <!-- Response time + slip duration -->
+        <div class="section">
+            <div class="section-label">Response Time &amp; Slip Duration</div>
+            <div class="chart-grid">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">Response Time by Trial</div>
+                        <div class="chart-subtitle">RT-Release + RT-Down</div>
+                    </div>
+                    <div class="chart-body" id="chart-response-time"></div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">Slip Duration</div>
+                        <div class="chart-subtitle">NO GO slips only</div>
+                    </div>
+                    <div class="chart-body" id="chart-slip-duration"></div>
+                </div>
+            </div>
         </div>
-    </div>
-    
-    <script>
-        let allData = [];
-        let currentPhase = 'both';
-        
-        // Listen for data from parent window
-        window.addEventListener('message', (event) => {
-            if (event.data.type === 'GO_NOGO_DATA') {
-                allData = event.data.data;
-                initializeDashboard();
-            }
+
+        <!-- RT over trials -->
+        <div class="section">
+            <div class="section-label">Over Time</div>
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-title">RT-Release across trials</div>
+                    <div class="chart-subtitle">GO trials</div>
+                </div>
+                <div class="chart-body" id="chart-rt-by-trial"></div>
+            </div>
+        </div>
+
+        <!-- Phase comparison (both only) -->
+        <div id="comparison-section" class="section">
+            <div class="section-label">Phase Comparison</div>
+            <div class="chart-grid">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">RT-Release distribution</div>
+                    </div>
+                    <div class="chart-body" id="chart-phase-box"></div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">Accuracy by phase</div>
+                    </div>
+                    <div class="chart-body" id="chart-phase-accuracy"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Raw data -->
+        <div class="section">
+            <div class="section-label">Raw Data</div>
+            <div class="chart-card">
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Phase</th>
+                                <th>Trial</th>
+                                <th>Type</th>
+                                <th>Correct</th>
+                                <th>Result</th>
+                                <th>RT-Release</th>
+                                <th>RT-Down</th>
+                                <th>Response Time</th>
+                                <th>Slip Duration</th>
+                                <th>Error</th>
+                            </tr>
+                        </thead>
+                        <tbody id="data-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<script>
+    let allData = [];
+    let currentPhase = 'both';
+
+    // ── Data reception ──
+    window.addEventListener('message', (event) => {
+        if (event.data.type === 'GO_NOGO_DATA') {
+            allData = event.data.data;
+            initializeDashboard();
+        }
+    });
+
+    window.addEventListener('load', () => {
+        const storedData = localStorage.getItem('goNoGoResults');
+        if (storedData && allData.length === 0) {
+            allData = JSON.parse(storedData);
+            initializeDashboard();
+        }
+    });
+
+    function initializeDashboard() {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+        updateDashboard();
+    }
+
+    function setPhase(phase) {
+        currentPhase = phase;
+        document.querySelectorAll('.phase-toggle button').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(`btn-${phase}`).classList.add('active');
+        document.getElementById('comparison-section').style.display = phase === 'both' ? '' : 'none';
+        updateDashboard();
+    }
+
+    function filterData() {
+        if (currentPhase === 'both') return allData;
+        if (currentPhase === 'practice') return allData.filter(d => d.phase === 'Practice');
+        return allData.filter(d => d.phase === 'Real Study');
+    }
+
+    function updateDashboard() {
+        const data = filterData();
+        updateStats(data);
+        plotHistogram('chart-rt-release-hist', data.filter(d => d.trialType === 'go' && d.rtRelease != null).map(d => d.rtRelease), 'RT-Release (ms)');
+        plotHistogram('chart-rt-down-hist', data.filter(d => d.trialType === 'go' && d.rtDown != null).map(d => d.rtDown), 'RT-Down (ms)');
+        plotResponseTime(data);
+        plotSlipDuration(data);
+        plotRTByTrial(data);
+        updateDataTable(data);
+        if (currentPhase === 'both') plotPhaseComparison();
+    }
+
+    // ── Stats ──
+    function median(arr) {
+        if (!arr.length) return null;
+        const s = [...arr].sort((a, b) => a - b);
+        const m = Math.floor(s.length / 2);
+        return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+    }
+
+    function mean(arr) {
+        if (!arr.length) return null;
+        return arr.reduce((a, b) => a + b, 0) / arr.length;
+    }
+
+    function stddev(arr) {
+        const m = mean(arr);
+        if (m === null) return null;
+        return Math.sqrt(arr.reduce((s, v) => s + Math.pow(v - m, 2), 0) / arr.length);
+    }
+
+    function fmt(val, decimals = 0) {
+        return val != null ? val.toFixed(decimals) : '—';
+    }
+
+    function updateStats(data) {
+        const validTrials = data.filter(d => d.trialType !== 'pending');
+        const uniqueTrials = [...new Set(data.map(d => `${d.phase}-${d.trialIndex}`))].length;
+
+        const correct = validTrials.filter(d => d.isCorrect).length;
+        const accuracy = validTrials.length > 0 ? (correct / validTrials.length) * 100 : null;
+
+        const goTrials = data.filter(d => d.trialType === 'go');
+        const goCorrect = goTrials.filter(d => d.isCorrect).length;
+        const goAcc = goTrials.length > 0 ? (goCorrect / goTrials.length) * 100 : null;
+
+        const nogoTrials = data.filter(d => d.trialType === 'nogo');
+        const nogoCorrect = nogoTrials.filter(d => d.isCorrect && d.resultType === 'Success').length;
+        const nogoAcc = nogoTrials.length > 0 ? (nogoCorrect / nogoTrials.length) * 100 : null;
+
+        const slips = data.filter(d => d.resultType === 'Slip Recorded').length;
+
+        const rtReleaseVals = data.filter(d => d.trialType === 'go' && d.rtRelease != null).map(d => d.rtRelease);
+        const rtDownVals = data.filter(d => d.trialType === 'go' && d.rtDown != null).map(d => d.rtDown);
+        const responseTimeVals = data.filter(d => d.responseTime != null).map(d => d.responseTime);
+        const slipDurationVals = data.filter(d => d.slipDuration != null).map(d => d.slipDuration);
+
+        set('stat-total-trials', uniqueTrials);
+        set('stat-accuracy', accuracy != null ? accuracy.toFixed(1) + '%' : '—');
+        set('stat-go-accuracy', goAcc != null ? goAcc.toFixed(1) + '%' : '—');
+        set('stat-nogo-accuracy', nogoAcc != null ? nogoAcc.toFixed(1) + '%' : '—');
+        set('stat-slips', slips);
+        set('stat-mean-rt-release', fmt(mean(rtReleaseVals)));
+        set('stat-median-rt-release', fmt(median(rtReleaseVals)));
+        set('stat-mean-rt-down', fmt(mean(rtDownVals)));
+        set('stat-mean-response-time', fmt(mean(responseTimeVals)));
+        set('stat-std-rt', fmt(stddev(rtReleaseVals), 1));
+        set('stat-mean-slip-duration', slipDurationVals.length ? fmt(mean(slipDurationVals)) : '—');
+    }
+
+    function set(id, val) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+    }
+
+    // ── Shared Plotly config ──
+    const PLOTLY_CONFIG = { displayModeBar: false, responsive: true };
+
+    const PLOTLY_LAYOUT_BASE = {
+        paper_bgcolor: 'transparent',
+        plot_bgcolor: 'transparent',
+        font: { family: 'DM Sans, sans-serif', size: 11, color: '#6b6b66' },
+        margin: { t: 12, r: 16, b: 40, l: 48 },
+        xaxis: { gridcolor: '#e5e5e2', linecolor: '#d0d0cc', tickcolor: '#d0d0cc', zeroline: false },
+        yaxis: { gridcolor: '#e5e5e2', linecolor: '#d0d0cc', tickcolor: '#d0d0cc', zeroline: false },
+        legend: { bgcolor: 'transparent', borderwidth: 0 }
+    };
+
+    function layout(overrides = {}) {
+        return Object.assign({}, PLOTLY_LAYOUT_BASE, overrides, {
+            xaxis: Object.assign({}, PLOTLY_LAYOUT_BASE.xaxis, overrides.xaxis || {}),
+            yaxis: Object.assign({}, PLOTLY_LAYOUT_BASE.yaxis, overrides.yaxis || {})
         });
-        
-        // Also check if data is in localStorage (fallback)
-        window.addEventListener('load', () => {
-            const storedData = localStorage.getItem('goNoGoResults');
-            if (storedData && allData.length === 0) {
-                allData = JSON.parse(storedData);
-                initializeDashboard();
-            }
-        });
-        
-        function initializeDashboard() {
-            document.getElementById('loading').classList.add('hidden');
-            document.getElementById('dashboard').classList.remove('hidden');
-            updateDashboard();
-        }
-        
-        function setPhase(phase) {
-            currentPhase = phase;
-            document.querySelectorAll('.phase-toggle button').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            document.getElementById(`btn-${phase}`).classList.add('active');
-            
-            // Show/hide comparison section
-            document.getElementById('comparison-section').style.display = 
-                phase === 'both' ? 'block' : 'none';
-            
-            updateDashboard();
-        }
-        
-        function filterData() {
-            if (currentPhase === 'both') {
-                return allData;
-            } else if (currentPhase === 'practice') {
-                return allData.filter(d => d.phase === 'Practice');
-            } else {
-                return allData.filter(d => d.phase === 'Real Study');
-            }
-        }
-        
-        function updateDashboard() {
-            const data = filterData();
-            updateStats(data);
-            plotRTHistogram(data);
-            plotRTBoxplot(data);
-            plotRTByTrial(data);
-            plotErrorTypes(data);
-            plotErrorsByTrial(data);
-            plotRTvsTrial(data);
-            updateDataTable(data);
-            
-            if (currentPhase === 'both') {
-                plotPhaseComparison();
-            }
-        }
-        
-        function updateStats(data) {
-            const successfulTrials = data.filter(d => d.isCorrect && d.trialType !== 'pending');
-            const goTrials = data.filter(d => d.trialType === 'go' && d.rt !== null && d.rt !== undefined);
-            const rts = goTrials.map(d => d.rt);
-            
-            document.getElementById('stat-total-trials').textContent = 
-                [...new Set(data.map(d => `${d.phase}-${d.trialIndex}`))].length;
-            
-            const accuracy = successfulTrials.length / data.filter(d => d.trialType !== 'pending').length * 100;
-            document.getElementById('stat-accuracy').textContent = 
-                accuracy.toFixed(1) + '%';
-            
-            if (rts.length > 0) {
-                const mean = rts.reduce((a, b) => a + b, 0) / rts.length;
-                document.getElementById('stat-mean-rt').textContent = mean.toFixed(0);
-                
-                const sorted = [...rts].sort((a, b) => a - b);
-                const median = sorted.length % 2 === 0 
-                    ? (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2
-                    : sorted[Math.floor(sorted.length / 2)];
-                document.getElementById('stat-median-rt').textContent = median.toFixed(0);
-                
-                const variance = rts.reduce((sum, rt) => sum + Math.pow(rt - mean, 2), 0) / rts.length;
-                const std = Math.sqrt(variance);
-                document.getElementById('stat-std-rt').textContent = std.toFixed(1);
-                
-                const meanReciprocal = rts.reduce((sum, rt) => sum + (1000 / rt), 0) / rts.length;
-                document.getElementById('stat-mean-reciprocal').textContent = meanReciprocal.toFixed(3);
-            } else {
-                document.getElementById('stat-mean-rt').textContent = 'N/A';
-                document.getElementById('stat-median-rt').textContent = 'N/A';
-                document.getElementById('stat-std-rt').textContent = 'N/A';
-                document.getElementById('stat-mean-reciprocal').textContent = 'N/A';
-            }
-            
-            const goCorrect = data.filter(d => d.trialType === 'go' && d.isCorrect).length;
-            const goTotal = data.filter(d => d.trialType === 'go').length;
-            document.getElementById('stat-go-accuracy').textContent = 
-                goTotal > 0 ? ((goCorrect / goTotal) * 100).toFixed(1) + '%' : 'N/A';
-        }
-        
-        function plotRTHistogram(data) {
-            const rts = data.filter(d => d.trialType === 'go' && d.rt).map(d => d.rt);
-            
-            if (rts.length === 0) {
-                Plotly.newPlot('rt-histogram', [], {title: 'No reaction time data available'});
-                return;
-            }
-            
-            const mean = rts.reduce((a, b) => a + b, 0) / rts.length;
-            const variance = rts.reduce((sum, rt) => sum + Math.pow(rt - mean, 2), 0) / rts.length;
-            const std = Math.sqrt(variance);
-            
-            // Generate normal curve
-            const min = Math.min(...rts);
-            const max = Math.max(...rts);
-            const xValues = [];
-            const yValues = [];
-            for (let x = min - std; x <= max + std; x += (max - min) / 100) {
-                xValues.push(x);
-                const exponent = -Math.pow(x - mean, 2) / (2 * variance);
-                yValues.push((1 / (std * Math.sqrt(2 * Math.PI))) * Math.exp(exponent) * rts.length * 50);
-            }
-            
-            const trace1 = {
-                x: rts,
-                type: 'histogram',
-                name: 'Reaction Times',
-                marker: { color: '#667eea' },
-                opacity: 0.7,
-                xbins: {
-                    size: 100
-                }
-            };
-            
-            const trace2 = {
-                x: xValues,
-                y: yValues,
-                type: 'scatter',
-                mode: 'lines',
-                name: 'Normal Distribution',
-                line: { color: '#764ba2', width: 3 }
-            };
-            
-            const layout = {
-                title: 'Reaction Time Distribution with Normal Curve',
-                xaxis: { 
-                    title: 'Reaction Time (ms)',
-                    dtick: 100,
-                    rangemode: 'tozero'
-                },
-                yaxis: { 
-                    title: 'Frequency',
-                    rangemode: 'tozero'
-                },
-                showlegend: true
-            };
-            
-            Plotly.newPlot('rt-histogram', [trace1, trace2], layout);
-        }
-        
-        function plotRTBoxplot(data) {
-            const practiceRTs = data.filter(d => d.phase === 'Practice' && d.trialType === 'go' && d.rt).map(d => d.rt);
-            const realRTs = data.filter(d => d.phase === 'Real Study' && d.trialType === 'go' && d.rt).map(d => d.rt);
-            
-            const traces = [];
-            
-            if (currentPhase === 'both') {
-                if (practiceRTs.length > 0) {
-                    traces.push({
-                        y: practiceRTs,
-                        type: 'box',
-                        name: 'Practice',
-                        marker: { color: '#667eea' }
-                    });
-                }
-                if (realRTs.length > 0) {
-                    traces.push({
-                        y: realRTs,
-                        type: 'box',
-                        name: 'Real Study',
-                        marker: { color: '#764ba2' }
-                    });
-                }
-            } else {
-                const rts = data.filter(d => d.trialType === 'go' && d.rt).map(d => d.rt);
-                if (rts.length > 0) {
-                    traces.push({
-                        y: rts,
-                        type: 'box',
-                        name: currentPhase === 'practice' ? 'Practice' : 'Real Study',
-                        marker: { color: currentPhase === 'practice' ? '#667eea' : '#764ba2' }
-                    });
-                }
-            }
-            
-            const layout = {
-                title: 'Reaction Time Box Plot',
-                yaxis: { 
-                    title: 'Reaction Time (ms)',
-                    dtick: 100,
-                    rangemode: 'tozero'
-                }
-            };
-            
-            Plotly.newPlot('rt-boxplot', traces, layout);
-        }
-        
-        function plotRTByTrial(data) {
-            const goData = data.filter(d => d.trialType === 'go' && d.rt);
-            
-            const trace = {
-                x: goData.map(d => d.trialIndex),
-                y: goData.map(d => d.rt),
+    }
+
+    function emptyState(id) {
+        document.getElementById(id).innerHTML =
+            '<div class="empty-state">Not enough data</div>';
+    }
+
+    // ── Charts ──
+    function plotHistogram(id, vals, xLabel) {
+        if (vals.length < 2) { emptyState(id); return; }
+        const trace = {
+            x: vals,
+            type: 'histogram',
+            marker: { color: '#1a1a18', opacity: 0.75 },
+            xbins: { size: 50 }
+        };
+        Plotly.newPlot(id, [trace], layout({
+            height: 200,
+            xaxis: { title: xLabel, rangemode: 'tozero' },
+            yaxis: { title: 'Count', rangemode: 'tozero' }
+        }), PLOTLY_CONFIG);
+    }
+
+    function plotResponseTime(data) {
+        const rows = data.filter(d => d.responseTime != null);
+        if (!rows.length) { emptyState('chart-response-time'); return; }
+        const trace = {
+            x: rows.map(d => d.trialIndex),
+            y: rows.map(d => d.responseTime),
+            mode: 'markers',
+            type: 'scatter',
+            marker: { color: '#1a1a18', size: 7, opacity: 0.8 }
+        };
+        Plotly.newPlot('chart-response-time', [trace], layout({
+            height: 200,
+            xaxis: { title: 'Trial', rangemode: 'tozero' },
+            yaxis: { title: 'ms', rangemode: 'tozero' }
+        }), PLOTLY_CONFIG);
+    }
+
+    function plotSlipDuration(data) {
+        const vals = data.filter(d => d.slipDuration != null).map(d => d.slipDuration);
+        if (!vals.length) { emptyState('chart-slip-duration'); return; }
+        const trace = {
+            y: vals,
+            type: 'box',
+            marker: { color: '#d97706' },
+            line: { color: '#d97706' },
+            fillcolor: 'rgba(217,119,6,0.15)',
+            boxpoints: 'all',
+            jitter: 0.4,
+            pointpos: -1.5
+        };
+        Plotly.newPlot('chart-slip-duration', [trace], layout({
+            height: 200,
+            yaxis: { title: 'ms', rangemode: 'tozero' },
+            xaxis: { visible: false }
+        }), PLOTLY_CONFIG);
+    }
+
+    function plotRTByTrial(data) {
+        const rows = data.filter(d => d.trialType === 'go' && d.rtRelease != null);
+        if (!rows.length) { emptyState('chart-rt-by-trial'); return; }
+
+        const traces = [];
+        const phases = currentPhase === 'both'
+            ? ['Practice', 'Real Study']
+            : [currentPhase === 'practice' ? 'Practice' : 'Real Study'];
+
+        const colors = { 'Practice': '#9b9b96', 'Real Study': '#1a1a18' };
+
+        phases.forEach(ph => {
+            const phRows = rows.filter(d => d.phase === ph);
+            if (!phRows.length) return;
+            traces.push({
+                x: phRows.map(d => d.trialIndex),
+                y: phRows.map(d => d.rtRelease),
                 mode: 'lines+markers',
-                type: 'scatter',
-                name: 'Reaction Time',
-                line: { color: '#667eea', width: 2 },
-                marker: { size: 8, color: '#764ba2' }
-            };
-            
-            const layout = {
-                title: 'Reaction Time Across Trials',
-                xaxis: { 
-                    title: 'Trial Number',
-                    rangemode: 'tozero'
-                },
-                yaxis: { 
-                    title: 'Reaction Time (ms)',
-                    dtick: 100,
-                    rangemode: 'tozero'
-                }
-            };
-            
-            Plotly.newPlot('rt-by-trial', [trace], layout);
-        }
-        
-        function plotErrorTypes(data) {
-            const errors = data.filter(d => !d.isCorrect);
-            
-            if (errors.length === 0) {
-                document.getElementById('error-types').innerHTML = 
-                    '<div class="flex items-center justify-center h-full text-gray-500 text-lg">No errors recorded</div>';
-                return;
-            }
-            
-            const errorCounts = {};
-            errors.forEach(d => {
-                errorCounts[d.errorCategory] = (errorCounts[d.errorCategory] || 0) + 1;
+                name: ph,
+                line: { color: colors[ph], width: 1.5 },
+                marker: { color: colors[ph], size: 6 }
             });
-            
-            const trace = {
-                labels: Object.keys(errorCounts),
-                values: Object.values(errorCounts),
-                type: 'pie',
-                marker: {
-                    colors: ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6']
-                }
-            };
-            
-            const layout = {
-                title: ''
-            };
-            
-            Plotly.newPlot('error-types', [trace], layout);
-        }
-        
-        function plotErrorsByTrial(data) {
-            const errors = data.filter(d => !d.isCorrect);
-            
-            if (errors.length === 0) {
-                document.getElementById('errors-by-trial').innerHTML = 
-                    '<div class="flex items-center justify-center h-full text-gray-500 text-lg">No errors recorded</div>';
-                return;
-            }
-            
-            const trialErrors = {};
-            data.forEach(d => {
-                if (!trialErrors[d.trialIndex]) {
-                    trialErrors[d.trialIndex] = { correct: 0, incorrect: 0 };
-                }
-                if (d.isCorrect) {
-                    trialErrors[d.trialIndex].correct++;
-                } else {
-                    trialErrors[d.trialIndex].incorrect++;
-                }
-            });
-            
-            const trials = Object.keys(trialErrors).sort((a, b) => parseInt(a) - parseInt(b));
-            
-            const trace = {
-                x: trials,
-                y: trials.map(t => trialErrors[t].incorrect),
-                type: 'bar',
-                name: 'Errors',
-                marker: { color: '#ef4444' }
-            };
-            
-            const layout = {
-                title: '',
-                xaxis: { 
-                    title: 'Trial Number',
-                    rangemode: 'tozero'
-                },
-                yaxis: { 
-                    title: 'Number of Errors',
-                    rangemode: 'tozero'
-                }
-            };
-            
-            Plotly.newPlot('errors-by-trial', [trace], layout);
-        }
-        
-        function plotRTvsTrial(data) {
-            const goData = data.filter(d => d.trialType === 'go' && d.rt);
-            
-            const trace = {
-                x: goData.map(d => d.trialIndex),
-                y: goData.map(d => 1000 / d.rt),
-                mode: 'markers',
-                type: 'scatter',
-                name: '1/RT',
-                marker: { 
-                    size: 10, 
-                    color: goData.map(d => d.rt),
-                    colorscale: 'Viridis',
-                    showscale: true,
-                    colorbar: { title: 'RT (ms)' }
-                }
-            };
-            
-            const layout = {
-                title: 'Reciprocal Reaction Time (Speed) by Trial',
-                xaxis: { 
-                    title: 'Trial Number',
-                    rangemode: 'tozero'
-                },
-                yaxis: { 
-                    title: '1/RT (Higher = Faster)',
-                    rangemode: 'tozero'
-                }
-            };
-            
-            Plotly.newPlot('rt-vs-trial', [trace], layout);
-        }
-        
-        function plotPhaseComparison() {
-            const practiceData = allData.filter(d => d.phase === 'Practice');
-            const realData = allData.filter(d => d.phase === 'Real Study');
-            
-            // Box plot comparison
-            const practiceRTs = practiceData.filter(d => d.trialType === 'go' && d.rt).map(d => d.rt);
-            const realRTs = realData.filter(d => d.trialType === 'go' && d.rt).map(d => d.rt);
-            
-            const boxTraces = [];
-            if (practiceRTs.length > 0) {
-                boxTraces.push({
-                    y: practiceRTs,
-                    type: 'box',
-                    name: 'Practice',
-                    marker: { color: '#667eea' }
-                });
-            }
-            if (realRTs.length > 0) {
-                boxTraces.push({
-                    y: realRTs,
-                    type: 'box',
-                    name: 'Real Study',
-                    marker: { color: '#764ba2' }
-                });
-            }
-            
-            Plotly.newPlot('phase-comparison-box', boxTraces, {
-                yaxis: { 
-                    title: 'Reaction Time (ms)',
-                    dtick: 100,
-                    rangemode: 'tozero'
-                }
-            });
-            
-            // Accuracy comparison
-            const practiceCorrect = practiceData.filter(d => d.isCorrect && d.trialType !== 'pending').length;
-            const practiceTotal = practiceData.filter(d => d.trialType !== 'pending').length;
-            const realCorrect = realData.filter(d => d.isCorrect && d.trialType !== 'pending').length;
-            const realTotal = realData.filter(d => d.trialType !== 'pending').length;
-            
-            const accTrace = {
-                x: ['Practice', 'Real Study'],
-                y: [
-                    practiceTotal > 0 ? (practiceCorrect / practiceTotal) * 100 : 0,
-                    realTotal > 0 ? (realCorrect / realTotal) * 100 : 0
-                ],
-                type: 'bar',
-                marker: { color: ['#667eea', '#764ba2'] }
-            };
-            
-            Plotly.newPlot('phase-comparison-accuracy', [accTrace], {
-                yaxis: { 
-                    title: 'Accuracy (%)',
-                    rangemode: 'tozero'
-                }
-            });
-        }
-        
-        function updateDataTable(data) {
-            const tbody = document.getElementById('data-table-body');
-            tbody.innerHTML = '';
-            
-            data.forEach(d => {
-                const row = tbody.insertRow();
-                row.className = d.isCorrect ? 'bg-green-50' : 'bg-red-50';
-                row.insertCell(0).textContent = d.phase;
-                row.insertCell(1).textContent = d.trialIndex;
-                row.insertCell(2).textContent = d.trialType;
-                row.insertCell(3).textContent = d.isCorrect ? 'Yes' : 'No';
-                row.insertCell(4).textContent = d.errorCategory || 'None';
-                row.insertCell(5).textContent = d.rt ? d.rt.toFixed(0) : '-';
-            });
-        }
-    </script>
+        });
+
+        Plotly.newPlot('chart-rt-by-trial', traces, layout({
+            height: 240,
+            xaxis: { title: 'Trial', rangemode: 'tozero' },
+            yaxis: { title: 'RT-Release (ms)', rangemode: 'tozero' }
+        }), PLOTLY_CONFIG);
+    }
+
+    function plotPhaseComparison() {
+        const practiceRTs = allData.filter(d => d.phase === 'Practice' && d.trialType === 'go' && d.rtRelease != null).map(d => d.rtRelease);
+        const realRTs = allData.filter(d => d.phase === 'Real Study' && d.trialType === 'go' && d.rtRelease != null).map(d => d.rtRelease);
+
+        const boxTraces = [];
+        if (practiceRTs.length) boxTraces.push({ y: practiceRTs, type: 'box', name: 'Practice', marker: { color: '#9b9b96' }, line: { color: '#9b9b96' }, fillcolor: 'rgba(155,155,150,0.15)' });
+        if (realRTs.length) boxTraces.push({ y: realRTs, type: 'box', name: 'Real Study', marker: { color: '#1a1a18' }, line: { color: '#1a1a18' }, fillcolor: 'rgba(26,26,24,0.12)' });
+
+        Plotly.newPlot('chart-phase-box', boxTraces, layout({
+            height: 220,
+            yaxis: { title: 'RT-Release (ms)', rangemode: 'tozero' }
+        }), PLOTLY_CONFIG);
+
+        // Accuracy comparison
+        const phases = ['Practice', 'Real Study'];
+        const accs = phases.map(ph => {
+            const phData = allData.filter(d => d.phase === ph && d.trialType !== 'pending');
+            if (!phData.length) return 0;
+            return (phData.filter(d => d.isCorrect).length / phData.length) * 100;
+        });
+
+        Plotly.newPlot('chart-phase-accuracy', [{
+            x: phases,
+            y: accs,
+            type: 'bar',
+            marker: { color: ['#9b9b96', '#1a1a18'] }
+        }], layout({
+            height: 220,
+            yaxis: { title: 'Accuracy (%)', range: [0, 105] },
+            xaxis: { tickfont: { size: 12 } }
+        }), PLOTLY_CONFIG);
+    }
+
+    // ── Data table ──
+    function updateDataTable(data) {
+        const tbody = document.getElementById('data-table-body');
+        tbody.innerHTML = '';
+
+        data.forEach(d => {
+            const tr = document.createElement('tr');
+            const isSlip = d.resultType === 'Slip Recorded';
+            const typeTag = d.trialType === 'go'
+                ? '<span class="tag tag-go">GO</span>'
+                : d.trialType === 'nogo'
+                    ? '<span class="tag tag-nogo">NO GO</span>'
+                    : `<span class="tag">${d.trialType}</span>`;
+            const correctTag = isSlip
+                ? '<span class="tag tag-slip">slip</span>'
+                : d.isCorrect
+                    ? '<span class="tag tag-yes">yes</span>'
+                    : '<span class="tag tag-no">no</span>';
+
+            tr.innerHTML = `
+                <td>${d.phase}</td>
+                <td>${d.trialIndex}</td>
+                <td>${typeTag}</td>
+                <td>${correctTag}</td>
+                <td>${d.resultType || '—'}</td>
+                <td>${d.rtRelease != null ? d.rtRelease.toFixed(0) : (d.rt != null ? d.rt.toFixed(0) : '—')}</td>
+                <td>${d.rtDown != null ? d.rtDown.toFixed(0) : '—'}</td>
+                <td>${d.responseTime != null ? d.responseTime.toFixed(0) : '—'}</td>
+                <td>${d.slipDuration != null ? d.slipDuration.toFixed(0) : '—'}</td>
+                <td>${d.errorCategory === 'None' || !d.errorCategory ? '—' : d.errorCategory}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+</script>
 </body>
 </html>

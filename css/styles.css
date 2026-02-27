@@ -6,7 +6,7 @@ body {
 
 
 #game-button {
-    transition: transform 0.3s ease-out, background-color 0.2s;
+    /* transition: transform 0.3s ease-out, background-color 0.2s; */
 }
 
 
@@ -21,26 +21,19 @@ body {
 
 
 @keyframes fadeIn {
-    0% {
-        opacity: 0;
-    }
-
-
-    100% {
-        opacity: 1;
-    }
+   
 }
 
 
 .animate-fadeInDown {
-    animation: fadeIn 0.3s ease-out forwards;
+    /* animation: fadeIn 0.3s ease-out forwards; */
 }
 
 
 /* Position stimulus text */
 #stimulus-text,
 #tutorial-stimulus-text {
-    transition: opacity 0.2s ease-out, transform 0.3s ease-out;
+    /* transition: opacity 0.2s ease-out, transform 0.3s ease-out; */
     text-align: center;
     left: 50%;
     margin-left: -50vw;
