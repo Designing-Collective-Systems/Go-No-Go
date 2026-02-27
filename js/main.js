@@ -38,18 +38,18 @@ const PRACTICE_SEQUENCE = [
   { type: 'go', delay: 6000, xFactor: 0, yFactor: 0 },
   { type: 'nogo', delay: 6000, xFactor: 0.5, yFactor: -0.5 },
   { type: 'go', delay: 7000, xFactor: -0.5, yFactor: 0.5 },
-  { type: 'go', delay: 8000, xFactor: 0.8, yFactor: 0.8 },
-  { type: 'nogo', delay: 7000, xFactor: -0.8, yFactor: -0.2 },
-  { type: 'go', delay: 6000, xFactor: 0, yFactor: 0.9 }
+//   { type: 'go', delay: 8000, xFactor: 0.8, yFactor: 0.8 },
+//   { type: 'nogo', delay: 7000, xFactor: -0.8, yFactor: -0.2 },
+//   { type: 'go', delay: 6000, xFactor: 0, yFactor: 0.9 }
 ];
 
 const REAL_SEQUENCE = [
   { type: 'go', delay: 6000, xFactor: 0, yFactor: 0 },
   { type: 'go', delay: 7000, xFactor: 0.4, yFactor: 0.4 },
   { type: 'nogo', delay: 8000, xFactor: -0.4, yFactor: -0.4 },
-  { type: 'go', delay: 7000, xFactor: 0.6, yFactor: -0.6 },
-  { type: 'nogo', delay: 6000, xFactor: -0.7, yFactor: 0.7 },
-  { type: 'go', delay: 8000, xFactor: 0.2, yFactor: -0.2 }
+//   { type: 'go', delay: 7000, xFactor: 0.6, yFactor: -0.6 },
+//   { type: 'nogo', delay: 6000, xFactor: -0.7, yFactor: 0.7 },
+//   { type: 'go', delay: 8000, xFactor: 0.2, yFactor: -0.2 }
 ];
 
 // ================= INTERACTIVE INSTRUCTION SEQUENCE =================
