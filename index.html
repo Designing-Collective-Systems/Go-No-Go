@@ -1,160 +1,165 @@
 <!DOCTYPE html>
 <html lang="en">
 
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Go/No-Go Task</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="./css/styles.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Go/No-Go Task</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="./css/styles.css">
 </head>
 
+<body class="min-h-screen font-sans">
 
-<body class="min-h-screen font-sans ">
+  <!-- Retry Modal -->
+  <div id="retry-modal" class="fixed inset-0 flex items-center justify-center z-50 bg-black/80 hidden">
+    <div class="p-8 rounded-xl max-w-md text-center border border-slate-600 shadow-2xl">
+      <h2 class="text-2xl font-bold text-red-400 mb-4">Try Again</h2>
+      <p id="retry-message" class="text-lg mb-8 text-white">Error message here.</p>
+      <button onclick="retryCurrentTrial()"
+        class="text-white bg-blue-600 hover:bg-blue-500 px-8 py-3 rounded-lg font-bold text-lg transition-colors shadow-lg">
+        OK
+      </button>
+    </div>
+  </div>
 
+  <div id="menu-overlay" class="fixed inset-0 flex items-center justify-center z-20">
 
-    <div id="retry-modal" class="fixed inset-0 flex items-center justify-center z-50 bg-black/80 hidden">
-        <div class="p-8 rounded-xl max-w-md text-center border border-slate-600 shadow-2xl">
-            <h2 class="text-2xl font-bold text-red-400 mb-4">Try Again</h2>
-            <p id="retry-message" class="text-lg mb-8 text-white">Error message here.</p>
-            <button onclick="retryCurrentTrial()"
-                class="text-white bg-blue-600 hover:bg-blue-500  px-8 py-3 rounded-lg font-bold text-lg transition-colors shadow-lg">
-                OK
-            </button>
-        </div>
+    <!-- Welcome Screen -->
+    <div id="welcome-screen" class="phase-container text-center max-w-2xl p-8">
+      <h1 class="text-4xl font-bold mb-6 bg-clip-text">Welcome to the Go/No-Go Task</h1>
+      <div class="space-y-6 mb-8 text-lg">
+        <p>This task measures your ability to respond quickly as per instructions.</p>
+      </div>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+        <button onclick="startInteractiveInstructions()"
+          class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-lg text-xl transition-colors shadow-lg">
+          Okay, tell me more!
+        </button>
+      </div>
+      <button onclick="skipTutorial()" class="mt-5">Skip Tutorial</button>
     </div>
 
-
-    <div id="menu-overlay" class="fixed inset-0 flex items-center justify-center z-20">
-        <!-- Welcome Screen -->
-        <div id="welcome-screen" class="phase-container text-center max-w-2xl p-8">
-            <h1 class="text-4xl font-bold mb-6 bg-clip-text">Welcome to the Go/No-Go Task</h1>
-            <div class="space-y-6 mb-8 text-lg">
-                <p>This task measures your ability to respond quickly as per instructions.</p>
-            </div>
-            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                <button onclick="startInteractiveInstructions()"
-                    class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-lg text-xl transition-colors shadow-lg">
-                    Okay, tell me more!
-                </button>
-            </div>
-            <button onclick="skipTutorial()" class="mt-5">
-                Skip Tutorial
-            </button>
-        </div>
-
-
-        <!-- Interactive Instructions Container -->
-        <div id="instruction-container" class="phase-container text-center max-w-2xl p-8">
-            <div id="instruction-content" class="space-y-6">
-                <!-- Dynamic instruction content will be inserted here -->
-            </div>
-        </div>
-
-
-        <!-- Practice Intro (Updated - w/ tutorial) -->
-        <div id="intro-practice" class="phase-container text-center max-w-2xl p-8">
-            <h1 class="text-3xl font-bold mb-6">Practice Session</h1>
-            <p class="text-lg mb-8">Great job learning the task! Now let's practice with a few trials to make sure
-                you're comfortable.</p>
-            <p class="text-lg mb-8"> The practice will include a mix of <strong style="color: #10b981">GO</strong> and
-                <strong style="color: #ef4444">NO GO</strong> trials in random order. Try your best!</p>
-            <button onclick="startPhase('practice')"
-                class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-lg text-xl transition-colors shadow-lg">
-                Start Practice
-            </button>
-        </div>
-
-
-        <div id="intro-real" class="phase-container text-center max-w-2xl p-8">
-            <h1 class="text-3xl font-bold mb-6">Go/No Go Task</h1>
-            <p class="mb-8">Great job. Now starting the real trials.</p>
-            <button onclick="startPhase('real')"
-                class="bg-green-600 hover:bg-green-500 text-white px-8 py-4 rounded-lg text-xl transition-colors shadow-lg">
-                Start Session
-            </button>
-        </div>
-
-
-        <div id="outro-complete" class="phase-container text-center max-w-2xl p-8">
-            <h1 class="text-3xl font-bold mb-6">Session Complete</h1>
-            <p class="mb-8">Thank you for participating!</p>
-            <div class="space-y-4">
-                <button onclick="downloadCSV()"
-                    class="bg-green-600 hover:bg-green-500 text-white px-8 py-4 rounded-lg text-xl transition-colors shadow-lg mr-4">
-                    Download Results
-                </button>
-                <button onclick="showDashboard()"
-                    class="bg-purple-600 hover:bg-purple-500 text-white px-8 py-4 rounded-lg text-xl transition-colors shadow-lg mr-4">
-                    See Results
-                </button>
-                <button onclick="resetApp()"
-                    class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-lg text-xl transition-colors shadow-lg">
-                    Start Over
-                </button>
-            </div>
-        </div>
-
-
-        <div id="results-view" class="phase-container text-center max-w-6xl p-8 overflow-auto max-h-screen">
-            <h1 class="text-3xl font-bold mb-6">Results</h1>
-            <div id="results-table-container" class="mb-8 overflow-x-auto">
-                <!-- Table will be inserted here -->
-            </div>
-            <button onclick="showMenuPhase('complete')"
-                class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-lg text-xl transition-colors shadow-lg">
-                Back
-            </button>
-        </div>
+    <!-- Interactive Instructions Container -->
+    <div id="instruction-container" class="phase-container text-center max-w-2xl p-8">
+      <div id="instruction-content" class="space-y-6">
+        <!-- Dynamic instruction content will be inserted here -->
+      </div>
     </div>
 
-
-    <div id="task-ui" class="hidden relative w-full h-screen">
-        <div class="absolute inset-0 flex items-center justify-center overflow-hidden">
-            <!-- Floating stimulus text directly above circle -->
-            <div id="stimulus-text"
-                class="absolute text-6xl font-black transition-opacity duration-200 opacity-0 pointer-events-none z-20"
-                style="transform: translate(0px, -264px);">
-                <!-- GO or NO GO will appear here, positioned 200px + circle radius (64px) above circle center -->
-            </div>
-
-            <button id="game-button"
-                class="w-32 h-32 rounded-full bg-blue-500 shadow-2xl absolute cursor-pointer focus:outline-none touch-none"
-                style="transform: translate(0px, 0px);">
-            </button>
-        </div>
+    <!-- Practice Intro -->
+    <div id="intro-practice" class="phase-container text-center max-w-2xl p-8">
+      <h1 class="text-3xl font-bold mb-6">Practice Session</h1>
+      <p class="text-lg mb-8">Great job learning the task! Now let's practice with a few trials to make sure you're
+        comfortable.</p>
+      <p class="text-lg mb-8">
+        The practice will include a mix of <strong style="color: #10b981">GO</strong> and
+        <strong style="color: #ef4444">NO GO</strong> trials in random order. Try your best!
+      </p>
+      <button onclick="startPhase('practice')"
+        class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-lg text-xl transition-colors shadow-lg">
+        Start Practice
+      </button>
     </div>
 
-
-    <!-- Interactive Tutorial UI (Separate from main task) -->
-    <div id="tutorial-ui" class="hidden relative w-full h-screen">
-        <div class="absolute inset-0 flex items-center justify-center overflow-hidden">
-            <!-- Floating stimulus text directly above circle -->
-            <div id="tutorial-stimulus-text"
-                class="absolute text-6xl font-black transition-opacity duration-200 opacity-0 pointer-events-none z-20"
-                style="transform: translate(0px, -264px);">
-                <!-- GO or NO GO will appear here, positioned 200px + circle radius (64px) above circle center -->
-            </div>
-
-            <button id="tutorial-button"
-                class="w-32 h-32 rounded-full bg-blue-500 shadow-2xl absolute cursor-pointer focus:outline-none touch-none"
-                style="transform: translate(0px, 0px);">
-            </button>
-        </div>
-
-
-        <div id="tutorial-continue-container" class="hidden absolute bottom-20 left-0 right-0 flex justify-center z-20">
-            <button id="tutorial-continue-btn"
-                class="bg-green-600 hover:bg-green-500 text-white px-8 py-4 rounded-lg text-xl transition-colors shadow-lg">
-                Continue
-            </button>
-        </div>
+    <div id="intro-real" class="phase-container text-center max-w-2xl p-8">
+      <h1 class="text-3xl font-bold mb-6">Go/No Go Task</h1>
+      <p class="mb-8">Great job. Now starting the real trials.</p>
+      <button onclick="startPhase('real')"
+        class="bg-green-600 hover:bg-green-500 text-white px-8 py-4 rounded-lg text-xl transition-colors shadow-lg">
+        Start Session
+      </button>
     </div>
 
+    <div id="outro-complete" class="phase-container text-center max-w-2xl p-8">
+      <h1 class="text-3xl font-bold mb-6">Session Complete</h1>
+      <p class="mb-8">Thank you for participating!</p>
+      <div class="space-y-4">
+        <button onclick="downloadCSV()"
+          class="bg-green-600 hover:bg-green-500 text-white px-8 py-4 rounded-lg text-xl transition-colors shadow-lg mr-4">
+          Download Results
+        </button>
+        <button onclick="showDashboard()"
+          class="bg-purple-600 hover:bg-purple-500 text-white px-8 py-4 rounded-lg text-xl transition-colors shadow-lg mr-4">
+          See Results
+        </button>
+        <button onclick="resetApp()"
+          class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-lg text-xl transition-colors shadow-lg">
+          Start Over
+        </button>
+      </div>
+    </div>
 
-    <script src="./js/main.js"></script>
+    <div id="results-view" class="phase-container text-center max-w-6xl p-8 overflow-auto max-h-screen">
+      <h1 class="text-3xl font-bold mb-6">Results</h1>
+      <div id="results-table-container" class="mb-8 overflow-x-auto">
+        <!-- Table will be inserted here -->
+      </div>
+      <button onclick="showMenuPhase('complete')"
+        class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-lg text-xl transition-colors shadow-lg">
+        Back
+      </button>
+    </div>
+
+  </div>
+
+  <!-- Main Task UI -->
+  <div id="task-ui" class="hidden relative w-full h-screen overflow-hidden">
+
+    <!-- Prompt text at top of screen -->
+    <div id="prompt-text" class="fixed top-8 left-0 right-0 text-center text-4xl font-black pointer-events-none z-20">
+      <!-- "Press & Hold", "Perfect", "Excellent" appear here -->
+    </div>
+
+    <div class="absolute inset-0 flex items-center justify-center">
+
+      <!-- Orange goal circle with GO/NO GO text inside -->
+      <div id="goal-circle" class="goal-circle-container" style="transform: translate(0px, 0px)">
+        <div id="goal-text" class="goal-text-inside">
+          <!-- GO or NO GO appears here -->
+        </div>
+      </div>
+
+      <!-- Blue start circle (button) -->
+      <button id="game-button"
+        class="w-32 h-32 rounded-full bg-blue-500 shadow-2xl absolute cursor-pointer focus:outline-none touch-none z-10"
+        style="transform: translate(0px, 0px)"></button>
+    </div>
+  </div>
+
+  <!-- Interactive Tutorial UI -->
+  <div id="tutorial-ui" class="hidden relative w-full h-screen overflow-hidden">
+
+    <!-- Prompt text at top of screen (tutorial) -->
+    <div id="tutorial-prompt-text"
+      class="fixed top-8 left-0 right-0 text-center text-4xl font-black pointer-events-none z-20">
+      <!-- "Press & Hold", "Perfect", "Excellent" appear here -->
+    </div>
+
+    <div class="absolute inset-0 flex items-center justify-center">
+
+      <!-- Orange goal circle (tutorial) -->
+      <div id="tutorial-goal-circle" class="goal-circle-container" style="transform: translate(0px, 0px)">
+        <div id="tutorial-goal-text" class="goal-text-inside">
+          <!-- GO or NO GO appears here -->
+        </div>
+      </div>
+
+      <!-- Blue start button (tutorial) -->
+      <button id="tutorial-button"
+        class="w-32 h-32 rounded-full bg-blue-500 shadow-2xl absolute cursor-pointer focus:outline-none touch-none z-10"
+        style="transform: translate(0px, 0px)"></button>
+    </div>
+
+    <div id="tutorial-continue-container" class="hidden absolute bottom-20 left-0 right-0 flex justify-center z-20">
+      <button id="tutorial-continue-btn"
+        class="bg-green-600 hover:bg-green-500 text-white px-8 py-4 rounded-lg text-xl transition-colors shadow-lg">
+        Continue
+      </button>
+    </div>
+  </div>
+
+  <script src="./js/main.js"></script>
 </body>
-
 
 </html>
