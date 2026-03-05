@@ -40,7 +40,7 @@ const INSTRUCTION_STEPS = [
         id: 'task-overview',
         type: 'text',
         title: 'How This Task Works',
-        message: 'In the Go/No-Go task, you\'ll press and hold a blue circle on the screen. Sometimes you\'ll need to lift your finger when you see <strong style="color: #10b981">"GO"</strong>, and other times you\'ll need to keep holding when you see <strong style="color: #ef4444">"NO GO"</strong>.',
+        message: 'You\'ll press and hold a blue circle on the screen. Sometimes you\'ll need to lift your finger when you see <strong style="color: #10b981">"GO"</strong>, and other times you\'ll need to keep holding when you see <strong style="color: #ef4444">"NO GO"</strong>.',
         buttonText: 'Got it, let\'s start!'
     },
     {
