@@ -7,7 +7,7 @@ const CONFIG = {
     showInstructionFeedback: true,
     // Delay (ms) between GO stimulus and "Put your finger down" prompt.
     // Only applies to practice and real phases (not tutorial).
-    goPromptDelay: { min: 2000, max: 4000 }
+    goPromptDelay: { min: 1000, max: 2500 },
 };
 
 
@@ -268,7 +268,7 @@ function handleTutorialPressStart(step) {
                     if (!STATE.tutorialTrialComplete) {
                         showTutorialRetry("Too slow! Please lift your finger when you see GO.");
                     }
-                }, 5000);
+                }, 2500);
             } else if (step.trialType === 'nogo') {
                 noGoTimeout = setTimeout(() => {
                     if (STATE.isHolding) {
@@ -878,7 +878,7 @@ function runStimulusLogic() {
                 rt: null
             });
             showRetryModal("Too slow! Please lift your finger when you see GO.");
-        }, 5000);
+        }, 2500);
     } else {
         noGoTimeout = setTimeout(() => {
             if (STATE.isHolding) {
