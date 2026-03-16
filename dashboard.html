@@ -51,7 +51,7 @@
         .page-header {
             border-bottom: 1px solid var(--border);
             background: var(--surface);
-            padding: 20px 32px;
+            padding: 16px 24px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -73,10 +73,30 @@
             color: var(--text-secondary);
         }
 
+        .filter-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .filter-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
         .main-content {
             max-width: 1100px;
             margin: 0 auto;
-            padding: 32px 24px 64px;
+            padding: 24px 16px 64px;
+        }
+
+        @media (max-width: 480px) {
+            .page-header { padding: 12px 16px; }
+            .main-content { padding: 16px 12px 48px; }
         }
 
         /* ── Phase Toggle ── */
@@ -135,7 +155,7 @@
         /* ── Stat Grid ── */
         .stat-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
             gap: 1px;
             background: var(--border);
             border: 1px solid var(--border);
@@ -145,7 +165,7 @@
 
         .stat-cell {
             background: var(--surface);
-            padding: 20px;
+            padding: 16px 20px;
         }
 
         .stat-value {
@@ -159,8 +179,16 @@
 
         .stat-label {
             font-size: 12px;
+            font-weight: 500;
             color: var(--text-secondary);
             margin-top: 4px;
+        }
+
+        .stat-hint {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 2px;
+            line-height: 1.4;
         }
 
         .stat-value.go { color: var(--go); }
@@ -209,6 +237,11 @@
         @media (max-width: 680px) {
             .chart-grid { grid-template-columns: 1fr; }
             .stat-grid { grid-template-columns: repeat(2, 1fr); }
+            .stat-value { font-size: 18px; }
+        }
+
+        @media (max-width: 400px) {
+            .stat-grid { grid-template-columns: 1fr; }
         }
 
         .empty-state {
@@ -299,11 +332,18 @@
 <div id="dashboard">
     <header class="page-header">
         <div class="page-title">Go/No-Go Task <span>/ Results</span></div>
-        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-            <div class="phase-toggle">
-                <button id="btn-practice" onclick="setPhase('practice')">Practice</button>
-                <button id="btn-real" onclick="setPhase('real')">Real Study</button>
-                <button id="btn-both" onclick="setPhase('both')" class="active">Both</button>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-wrap:wrap;">
+            <div class="filter-row">
+                <span class="filter-label">Phase</span>
+                <div class="phase-toggle">
+                    <button id="btn-practice" onclick="setPhase('practice')">Practice</button>
+                    <button id="btn-real" onclick="setPhase('real')">Real Study</button>
+                    <button id="btn-both" onclick="setPhase('both')" class="active">Both</button>
+                </div>
+            </div>
+            <div class="filter-row" id="block-filter-row" style="display:none;">
+                <span class="filter-label">Block</span>
+                <div class="phase-toggle" id="block-toggle"></div>
             </div>
             <button class="close-btn" onclick="window.close()">Close</button>
         </div>
@@ -318,53 +358,74 @@
                 <div class="stat-cell">
                     <div class="stat-value mono" id="stat-total-trials">—</div>
                     <div class="stat-label">Total trials</div>
+                    <div class="stat-hint">GO + NO GO attempts</div>
                 </div>
                 <div class="stat-cell">
                     <div class="stat-value" id="stat-accuracy">—</div>
-                    <div class="stat-label">Accuracy</div>
+                    <div class="stat-label">Overall accuracy</div>
+                    <div class="stat-hint">Correct responses across all trial types</div>
                 </div>
                 <div class="stat-cell">
-                    <div class="stat-value" id="stat-go-accuracy">—</div>
+                    <div class="stat-value go" id="stat-go-accuracy">—</div>
                     <div class="stat-label">GO accuracy</div>
+                    <div class="stat-hint">GO trials where finger lifted in time</div>
                 </div>
                 <div class="stat-cell">
-                    <div class="stat-value" id="stat-nogo-accuracy">—</div>
+                    <div class="stat-value nogo" id="stat-nogo-accuracy">—</div>
                     <div class="stat-label">NO GO accuracy</div>
+                    <div class="stat-hint">NO GO trials where finger was held</div>
                 </div>
                 <div class="stat-cell">
-                    <div class="stat-value" id="stat-slips">—</div>
+                    <div class="stat-value warn" id="stat-early-releases">—</div>
+                    <div class="stat-label">Early releases</div>
+                    <div class="stat-hint">Finger lifted before GO/NO GO appeared</div>
+                </div>
+                <div class="stat-cell">
+                    <div class="stat-value warn" id="stat-anticipatory">—</div>
+                    <div class="stat-label">Anticipatory presses</div>
+                    <div class="stat-hint">Button pressed before "Put your finger down" appeared</div>
+                </div>
+                <div class="stat-cell">
+                    <div class="stat-value warn" id="stat-slips">—</div>
                     <div class="stat-label">NO GO slips</div>
+                    <div class="stat-hint">Brief lifts on NO GO trials, corrected in time</div>
                 </div>
             </div>
         </div>
 
         <!-- RT stats -->
         <div class="section">
-            <div class="section-label">Reaction Times</div>
+            <div class="section-label">Reaction Times — GO Trials</div>
             <div class="stat-grid">
                 <div class="stat-cell">
                     <div class="stat-value" id="stat-mean-rt-release">—</div>
                     <div class="stat-label">Mean RT-Release (ms)</div>
+                    <div class="stat-hint">Avg time from GO onset to finger lift</div>
                 </div>
                 <div class="stat-cell">
                     <div class="stat-value" id="stat-median-rt-release">—</div>
                     <div class="stat-label">Median RT-Release (ms)</div>
-                </div>
-                <div class="stat-cell">
-                    <div class="stat-value" id="stat-mean-rt-down">—</div>
-                    <div class="stat-label">Mean RT-Down (ms)</div>
-                </div>
-                <div class="stat-cell">
-                    <div class="stat-value" id="stat-mean-response-time">—</div>
-                    <div class="stat-label">Mean Response Time (ms)</div>
+                    <div class="stat-hint">Median time from GO onset to finger lift</div>
                 </div>
                 <div class="stat-cell">
                     <div class="stat-value" id="stat-std-rt">—</div>
                     <div class="stat-label">RT-Release SD (ms)</div>
+                    <div class="stat-hint">Variability in GO release speed</div>
                 </div>
                 <div class="stat-cell">
-                    <div class="stat-value" id="stat-mean-slip-duration">—</div>
+                    <div class="stat-value" id="stat-mean-rt-down">—</div>
+                    <div class="stat-label">Mean RT-Down (ms)</div>
+                    <div class="stat-hint">Avg time from "Put finger down" prompt to recontact</div>
+                </div>
+                <div class="stat-cell">
+                    <div class="stat-value" id="stat-mean-response-time">—</div>
+                    <div class="stat-label">Mean Total Response Time (ms)</div>
+                    <div class="stat-hint">RT-Release + RT-Down per GO trial</div>
+                </div>
+                <div class="stat-cell">
+                    <div class="stat-value warn" id="stat-mean-slip-duration">—</div>
                     <div class="stat-label">Mean Slip Duration (ms)</div>
+                    <div class="stat-hint">How long finger left button on NO GO slips</div>
                 </div>
             </div>
         </div>
@@ -451,15 +512,23 @@
                         <thead>
                             <tr>
                                 <th>Phase</th>
+                                <th>Block</th>
                                 <th>Trial</th>
+                                <th>Trial in Block</th>
                                 <th>Type</th>
                                 <th>Correct</th>
                                 <th>Result</th>
-                                <th>RT-Release</th>
-                                <th>RT-Down</th>
-                                <th>Response Time</th>
-                                <th>Slip Duration</th>
-                                <th>Error</th>
+                                <th>Error Category</th>
+                                <th>RT-Release (ms)</th>
+                                <th>RT-Down (ms)</th>
+                                <th>Total Response Time (ms)</th>
+                                <th>Anticipatory Press Delay (ms)</th>
+                                <th>Slip Duration (ms)</th>
+                                <th>Trial Delay (ms)</th>
+                                <th>Go Prompt Delay (ms)</th>
+                                <th>Touch X</th>
+                                <th>Touch Y</th>
+                                <th>Timestamp</th>
                             </tr>
                         </thead>
                         <tbody id="data-table-body"></tbody>
@@ -474,6 +543,7 @@
 <script>
     let allData = [];
     let currentPhase = 'both';
+    let currentBlock = 'all';  // 'all' | '1' | '2' | ...
 
     // ── Data reception ──
     window.addEventListener('message', (event) => {
@@ -494,21 +564,64 @@
     function initializeDashboard() {
         document.getElementById('loading').style.display = 'none';
         document.getElementById('dashboard').style.display = 'block';
+        buildBlockToggle();
         updateDashboard();
+    }
+
+    function buildBlockToggle() {
+        const realTrials = allData.filter(d => d.phase === 'Real Study');
+        const blocks = [...new Set(realTrials.map(d => d.blockNumber).filter(b => b != null))].sort((a, b) => a - b);
+        const toggle = document.getElementById('block-toggle');
+        const row = document.getElementById('block-filter-row');
+
+        if (blocks.length <= 1) { row.style.display = 'none'; return; }
+
+        row.style.display = 'flex';
+        toggle.innerHTML = '';
+
+        const allBtn = document.createElement('button');
+        allBtn.id = 'btn-block-all';
+        allBtn.textContent = 'All';
+        allBtn.className = 'active';
+        allBtn.onclick = () => setBlock('all');
+        toggle.appendChild(allBtn);
+
+        blocks.forEach(b => {
+            const btn = document.createElement('button');
+            btn.id = `btn-block-${b}`;
+            btn.textContent = `Block ${b}`;
+            btn.onclick = () => setBlock(String(b));
+            toggle.appendChild(btn);
+        });
     }
 
     function setPhase(phase) {
         currentPhase = phase;
-        document.querySelectorAll('.phase-toggle button').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.phase-toggle button[id^="btn-practice"], .phase-toggle button[id^="btn-real"], .phase-toggle button[id^="btn-both"]').forEach(btn => btn.classList.remove('active'));
         document.getElementById(`btn-${phase}`).classList.add('active');
         document.getElementById('comparison-section').style.display = phase === 'both' ? '' : 'none';
+        // Block filter only makes sense in real phase
+        document.getElementById('block-filter-row').style.display =
+            (phase === 'real' || phase === 'both') ? 'flex' : 'none';
+        updateDashboard();
+    }
+
+    function setBlock(block) {
+        currentBlock = block;
+        document.querySelectorAll('#block-toggle button').forEach(btn => btn.classList.remove('active'));
+        const target = document.getElementById(`btn-block-${block}`);
+        if (target) target.classList.add('active');
         updateDashboard();
     }
 
     function filterData() {
-        if (currentPhase === 'both') return allData;
-        if (currentPhase === 'practice') return allData.filter(d => d.phase === 'Practice');
-        return allData.filter(d => d.phase === 'Real Study');
+        let data = allData;
+        if (currentPhase === 'practice') data = data.filter(d => d.phase === 'Practice');
+        else if (currentPhase === 'real') data = data.filter(d => d.phase === 'Real Study');
+        if (currentBlock !== 'all') {
+            data = data.filter(d => String(d.blockNumber) === currentBlock);
+        }
+        return data;
     }
 
     function updateDashboard() {
@@ -562,6 +675,8 @@
         const nogoAcc = nogoTrials.length > 0 ? (nogoCorrect / nogoTrials.length) * 100 : null;
 
         const slips = data.filter(d => d.resultType === 'Slip Recorded').length;
+        const earlyReleases = data.filter(d => d.errorCategory === 'Early Release').length;
+        const anticipatory = data.filter(d => d.errorCategory === 'Anticipatory Press').length;
 
         const rtReleaseVals = data.filter(d => d.trialType === 'go' && d.rtRelease != null).map(d => d.rtRelease);
         const rtDownVals = data.filter(d => d.trialType === 'go' && d.rtDown != null).map(d => d.rtDown);
@@ -572,6 +687,8 @@
         set('stat-accuracy', accuracy != null ? accuracy.toFixed(1) + '%' : '—');
         set('stat-go-accuracy', goAcc != null ? goAcc.toFixed(1) + '%' : '—');
         set('stat-nogo-accuracy', nogoAcc != null ? nogoAcc.toFixed(1) + '%' : '—');
+        set('stat-early-releases', earlyReleases);
+        set('stat-anticipatory', anticipatory);
         set('stat-slips', slips);
         set('stat-mean-rt-release', fmt(mean(rtReleaseVals)));
         set('stat-median-rt-release', fmt(median(rtReleaseVals)));
@@ -708,7 +825,7 @@
             yaxis: { title: 'RT-Release (ms)', rangemode: 'tozero' }
         }), PLOTLY_CONFIG);
 
-        // Accuracy comparison
+        // GO trial accuracy comparison
         const phases = ['Practice', 'Real Study'];
         const accs = phases.map(ph => {
             const phData = allData.filter(d => d.phase === ph && d.trialType !== 'pending');
@@ -723,7 +840,7 @@
             marker: { color: ['#9b9b96', '#1a1a18'] }
         }], layout({
             height: 220,
-            yaxis: { title: 'Accuracy (%)', range: [0, 105] },
+            yaxis: { title: 'Overall Accuracy (%)', range: [0, 105] },
             xaxis: { tickfont: { size: 12 } }
         }), PLOTLY_CONFIG);
     }
@@ -736,6 +853,7 @@
         data.forEach(d => {
             const tr = document.createElement('tr');
             const isSlip = d.resultType === 'Slip Recorded';
+            const isAnticipatory = d.errorCategory === 'Anticipatory Press';
             const typeTag = d.trialType === 'go'
                 ? '<span class="tag tag-go">GO</span>'
                 : d.trialType === 'nogo'
@@ -743,21 +861,31 @@
                     : `<span class="tag">${d.trialType}</span>`;
             const correctTag = isSlip
                 ? '<span class="tag tag-slip">slip</span>'
-                : d.isCorrect
-                    ? '<span class="tag tag-yes">yes</span>'
-                    : '<span class="tag tag-no">no</span>';
+                : isAnticipatory
+                    ? '<span class="tag tag-slip">anticipatory</span>'
+                    : d.isCorrect
+                        ? '<span class="tag tag-yes">yes</span>'
+                        : '<span class="tag tag-no">no</span>';
 
             tr.innerHTML = `
                 <td>${d.phase}</td>
+                <td>${d.blockNumber != null ? d.blockNumber : '—'}</td>
                 <td>${d.trialIndex}</td>
+                <td>${d.trialInBlock != null ? d.trialInBlock : '—'}</td>
                 <td>${typeTag}</td>
                 <td>${correctTag}</td>
                 <td>${d.resultType || '—'}</td>
+                <td>${d.errorCategory === 'None' || !d.errorCategory ? '—' : d.errorCategory}</td>
                 <td>${d.rtRelease != null ? d.rtRelease.toFixed(0) : (d.rt != null ? d.rt.toFixed(0) : '—')}</td>
                 <td>${d.rtDown != null ? d.rtDown.toFixed(0) : '—'}</td>
                 <td>${d.responseTime != null ? d.responseTime.toFixed(0) : '—'}</td>
+                <td>${d.anticipatoryPressDelay != null ? d.anticipatoryPressDelay.toFixed(0) : '—'}</td>
                 <td>${d.slipDuration != null ? d.slipDuration.toFixed(0) : '—'}</td>
-                <td>${d.errorCategory === 'None' || !d.errorCategory ? '—' : d.errorCategory}</td>
+                <td>${d.trialDelay != null ? d.trialDelay : '—'}</td>
+                <td>${d.goPromptDelay != null ? d.goPromptDelay : '—'}</td>
+                <td>${d.touchX != null ? d.touchX : '—'}</td>
+                <td>${d.touchY != null ? d.touchY : '—'}</td>
+                <td>${d.timestamp || '—'}</td>
             `;
             tbody.appendChild(tr);
         });

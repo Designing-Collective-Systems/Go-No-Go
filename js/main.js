@@ -5,33 +5,96 @@ const CONFIG = {
     circlePosition: 'fixed',
     showFeedback: true,
     showInstructionFeedback: true,
-    // Delay (ms) between GO stimulus and "Put your finger down" prompt.
-    // Only applies to practice and real phases (not tutorial).
-    goPromptDelay: { min: 1000, max: 2500 },
 };
+
+
+// =========================================================
+//            BLOCK & TRIAL COUNT CONFIGURATION
+//   Change these three values to adjust the real session.
+// =========================================================
+const NUM_BLOCKS     = 2;   // Number of blocks in the real session
+const GO_PER_BLOCK   = 15;  // GO trials per block
+const NOGO_PER_BLOCK = 5;   // NO GO trials per block
+const TRIALS_PER_BLOCK = GO_PER_BLOCK + NOGO_PER_BLOCK; // derived — do not edit
+
+
+// =========================================================
+//         FIXED TRIAL TEMPLATE  (applied to every block)
+//   All values are deterministic so every user sees the
+//   exact same timing and order.  Edit these arrays to
+//   change stimulus timing, prompt delays, or positions.
+//   Each array must have exactly TRIALS_PER_BLOCK entries.
+// =========================================================
+
+// Trial types: must contain GO_PER_BLOCK 'go' and NOGO_PER_BLOCK 'nogo' entries.
+const BLOCK_TRIAL_TYPES = [
+    'go',   'go',   'nogo', 'go',   'go',
+    'go',   'nogo', 'go',   'go',   'go',
+    'nogo', 'go',   'go',   'nogo', 'go',
+    'go',   'go',   'nogo', 'go',   'go'
+];
+
+// Holding delay (ms) from button press to stimulus appearance — range 2 000–6 000 ms.
+const BLOCK_STIM_DELAYS = [
+    4000, 6000, 5000, 3000, 6000,
+    4000, 5000, 3000, 6000, 4000,
+    5000, 3000, 6000, 4000, 5000,
+    3000, 6000, 4000, 5000, 3000
+];
+
+// Delay (ms) from GO finger-lift to "Put your finger down" prompt — range 2 000–3 000 ms.
+// Only used for GO trials; ignored for NO GO trials.
+const BLOCK_PROMPT_DELAYS = [
+    2000, 3000, 2000, 2500, 2000,
+    3000, 2500, 2000, 3000, 2500,
+    2000, 3000, 2500, 2000, 3000,
+    2000, 2500, 2000, 3000, 2500
+];
+
+// Button position factors per trial position (–1 to 1).
+// Only used when CONFIG.circlePosition !== 'fixed'.
+const BLOCK_X_FACTORS = [
+     0,    0.4, -0.4,  0.6, -0.6,
+     0.2, -0.2,  0.8, -0.8,  0,
+     0.3, -0.3,  0.5, -0.5,  0.7,
+    -0.7,  0.1, -0.1,  0.4, -0.4
+];
+const BLOCK_Y_FACTORS = [
+     0,    0.4, -0.4, -0.6,  0.6,
+    -0.2,  0.2, -0.8,  0.8,  0,
+    -0.3,  0.3, -0.5,  0.5, -0.7,
+     0.7, -0.1,  0.1, -0.4,  0.4
+];
 
 
 // =========================================================
 //                 EDIT TRIAL SEQUENCES HERE
 // =========================================================
 const PRACTICE_SEQUENCE = [
-    { type: 'go', delay: 6000, xFactor: 0, yFactor: 0 },
-    { type: 'nogo', delay: 6000, xFactor: 0.5, yFactor: -0.5 },
-    { type: 'go', delay: 7000, xFactor: -0.5, yFactor: 0.5 },
-    // { type: 'go', delay: 8000, xFactor: 0.8, yFactor: 0.8 },
-    // { type: 'nogo', delay: 7000, xFactor: -0.8, yFactor: -0.2 },
-    // { type: 'go', delay: 6000, xFactor: 0, yFactor: 0.9 }
+    { type: 'go',   delay: 6000, goPromptDelay: 2000, xFactor: 0,    yFactor: 0    },
+    { type: 'go',   delay: 7000, goPromptDelay: 2500, xFactor: -0.5, yFactor: 0.5  },
+    { type: 'nogo', delay: 6000, goPromptDelay: 2000, xFactor: 0.5,  yFactor: -0.5 },
 ];
 
-
-const REAL_SEQUENCE = [
-    { type: 'go', delay: 6000, xFactor: 0, yFactor: 0 },
-    { type: 'go', delay: 7000, xFactor: 0.4, yFactor: 0.4 },
-    { type: 'nogo', delay: 8000, xFactor: -0.4, yFactor: -0.4 },
-    // { type: 'go', delay: 7000, xFactor: 0.6, yFactor: -0.6 },
-    // { type: 'nogo', delay: 6000, xFactor: -0.7, yFactor: 0.7 },
-    // { type: 'go', delay: 8000, xFactor: 0.2, yFactor: -0.2 }
-];
+// Real sequence is generated from block config above. Do not edit directly.
+let _realSequence = null;
+function getRealSequence() {
+    if (_realSequence) return _realSequence;
+    _realSequence = [];
+    for (let b = 0; b < NUM_BLOCKS; b++) {
+        for (let i = 0; i < TRIALS_PER_BLOCK; i++) {
+            _realSequence.push({
+                type:          BLOCK_TRIAL_TYPES[i],
+                delay:         BLOCK_STIM_DELAYS[i],
+                goPromptDelay: BLOCK_PROMPT_DELAYS[i],
+                xFactor:       BLOCK_X_FACTORS[i],
+                yFactor:       BLOCK_Y_FACTORS[i],
+                blockNumber:   b + 1
+            });
+        }
+    }
+    return _realSequence;
+}
 
 
 // ================= INTERACTIVE INSTRUCTION SEQUENCE =================
@@ -40,14 +103,14 @@ const INSTRUCTION_STEPS = [
         id: 'task-overview',
         type: 'text',
         title: 'How This Task Works',
-        message: 'You\'ll press and hold a blue circle on the screen. Sometimes you\'ll need to lift your finger when you see <strong style="color: #10b981">"GO"</strong>, and other times you\'ll need to keep holding when you see <strong style="color: #ef4444">"NO GO"</strong>.',
+        message: 'You\'ll press and hold a blue circle on the screen. You\'ll need to lift your finger when you see <strong style="color: #10b981">"GO"</strong>  — then wait for a prompt before pressing again. You\'ll need to keep holding when you see <strong style="color: #ef4444">"NO GO"</strong>.',
         buttonText: 'Got it, let\'s start!'
     },
     {
         id: 'go-explanation',
         type: 'text',
         title: 'Learning GO Trials',
-        message: 'You\'ll see a blue circle on the screen. When the word <strong style="color: #10b981">"GO"</strong> appears above the circle, lift your finger quickly and then press the circle again as fast as you can.',
+        message: 'You\'ll see a blue circle on the screen. When the word <strong style="color: #10b981">"GO"</strong> appears above the circle, lift your finger quickly. Then wait — a prompt will appear saying "Put your finger down". Press the circle again as fast as you can only when you see that prompt.',
         buttonText: 'Ready to try it!'
     },
     {
@@ -133,6 +196,10 @@ const els = {
     instructionContent: document.getElementById('instruction-content'),
     introPractice: document.getElementById('intro-practice'),
     introReal: document.getElementById('intro-real'),
+    blockBreak: document.getElementById('block-break'),
+    blockBreakTitle: document.getElementById('block-break-title'),
+    blockBreakSubtitle: document.getElementById('block-break-subtitle'),
+    blockBreakNext: document.getElementById('block-break-next'),
     outroComplete: document.getElementById('outro-complete'),
     resultsView: document.getElementById('results-view'),
     resultsTableContainer: document.getElementById('results-table-container'),
@@ -317,11 +384,16 @@ function handleTutorialPressEnd(step) {
         clearTimeout(stimulusTimeout);
         showTutorialRetry("You lifted your finger before seeing the instruction. Please keep holding until you see GO or NO GO. Let's try again!");
     } else if (STATE.trialState === 'stimulus') {
-        if (step.trialType === 'go') {
-            clearTimeout(goTimeout);
+    if (step.trialType === 'go') {
+        clearTimeout(goTimeout);
+        STATE.trialState = 'go-delay';
+        updateTutorialUI();
+        updateTutorialButtonAppearance();
+        setTimeout(() => {
             STATE.trialState = 'released';
             updateTutorialUI();
             updateTutorialButtonAppearance();
+        }, 1000);
         } else if (step.trialType === 'nogo') {
             STATE.noGoSlipStartTime = Date.now();
             clearTimeout(noGoTimeout);
@@ -482,11 +554,24 @@ function getSafeZone() {
 
 
 function logMetric(data) {
-    const safe = getSafeZone();
+    const cfg = STATE.currentTrialConfig;
+    const blockNum = (!STATE.isPractice && cfg && cfg.blockNumber != null)
+        ? cfg.blockNumber
+        : (!STATE.isPractice ? Math.floor(STATE.currentTrialIndex / TRIALS_PER_BLOCK) + 1 : null);
+    const trialInBlock = STATE.isPractice
+        ? null
+        : (STATE.currentTrialIndex % TRIALS_PER_BLOCK) + 1;
+
     const record = {
-        phase: STATE.isPractice ? 'Practice' : 'Real Study',
-        trialIndex: STATE.currentTrialIndex + 1,  // FIXED: Now properly reflects current trial
-        timestamp: new Date().toISOString(),
+        phase:                  STATE.isPractice ? 'Practice' : 'Real Study',
+        blockNumber:            blockNum,
+        trialIndex:             STATE.currentTrialIndex + 1,
+        trialInBlock:           trialInBlock,
+        timestamp:              new Date().toISOString(),
+        stimulusOnsetTimestamp: STATE.stimulusOnsetTime ? new Date(STATE.stimulusOnsetTime).toISOString() : null,
+        sessionStartTime:       STATE.sessionStartTime,
+        trialDelay:             cfg ? cfg.delay : null,
+        goPromptDelay:          cfg ? cfg.goPromptDelay : null,
         ...data,
         touchX: STATE.lastInput.x,
         touchY: STATE.lastInput.y
@@ -510,7 +595,9 @@ function logMetric(data) {
 function downloadCSV() {
     const headers = [
         'Phase',
+        'Block',
         'Trial Index',
+        'Trial in Block',
         'Trial Type',
         'Is Correct',
         'Result Type',
@@ -518,17 +605,23 @@ function downloadCSV() {
         'RT-Release (ms)',
         'RT-Down (ms)',
         'Response Time (ms)',
+        'Anticipatory Press Delay (ms)',
         'Slip Duration (ms)',
         'Recontact Time (ms)',
+        'Trial Delay (ms)',
+        'Go Prompt Delay (ms)',
         'Touch X',
         'Touch Y',
-        'Timestamp'
+        'Timestamp',
+        'Stimulus Onset Timestamp',
+        'Session Start Time'
     ];
-
 
     const rows = STATE.allTrials.map(trial => [
         trial.phase,
+        trial.blockNumber != null ? trial.blockNumber : '',
         trial.trialIndex,
+        trial.trialInBlock != null ? trial.trialInBlock : '',
         trial.trialType,
         trial.isCorrect,
         trial.resultType,
@@ -536,11 +629,16 @@ function downloadCSV() {
         trial.rtRelease != null ? trial.rtRelease : (trial.rt || ''),
         trial.rtDown != null ? trial.rtDown : '',
         trial.responseTime != null ? trial.responseTime : '',
+        trial.anticipatoryPressDelay != null ? trial.anticipatoryPressDelay : '',
         trial.slipDuration != null ? trial.slipDuration : '',
         trial.recontactTime || '',
+        trial.trialDelay != null ? trial.trialDelay : '',
+        trial.goPromptDelay != null ? trial.goPromptDelay : '',
         trial.touchX,
         trial.touchY,
-        trial.timestamp
+        trial.timestamp,
+        trial.stimulusOnsetTimestamp || '',
+        trial.sessionStartTime || ''
     ]);
 
 
@@ -694,7 +792,7 @@ function startPhase(phaseName) {
 
 
 function getCurrentSequence() {
-    return STATE.isPractice ? PRACTICE_SEQUENCE : REAL_SEQUENCE;
+    return STATE.isPractice ? PRACTICE_SEQUENCE : getRealSequence();
 }
 
 
@@ -712,11 +810,42 @@ function onTaskComplete() {
 }
 
 
+function continueNextBlock() {
+    // Reset per-trial state but keep cumulative data and trial index intact
+    STATE.currentTrialConfig = null;
+    STATE.currentRT = null;
+    STATE.noGoSlipStartTime = null;
+    STATE.rtRelease = null;
+    STATE.putDownPromptTime = null;
+    STATE.rtDown = null;
+    STATE.isHolding = false;
+    STATE.trialState = 'waiting';
+
+    els.menuOverlay.classList.add('hidden');
+    els.taskUi.classList.remove('hidden');
+    els.stimulusText.innerText = '';
+    els.stimulusText.classList.add('opacity-0');
+
+    const sequence = getCurrentSequence();
+    const nextConfig = sequence[STATE.currentTrialIndex];
+    if (nextConfig) {
+        if (CONFIG.circlePosition === 'fixed') {
+            updateButtonPosition(0, 0);
+        } else {
+            updateButtonPosition(nextConfig.xFactor, nextConfig.yFactor);
+        }
+    }
+    updateUI();
+}
+
+
+
 function showMenuPhase(id) {
     document.querySelectorAll('.phase-container').forEach(el => el.classList.remove('active'));
     if (id === 'welcome') els.welcomeScreen.classList.add('active');
     if (id === 'practice-intro') els.introPractice.classList.add('active');
     if (id === 'real-intro') els.introReal.classList.add('active');
+    if (id === 'block-break') els.blockBreak.classList.add('active');
     if (id === 'complete') els.outroComplete.classList.add('active');
     if (id === 'results') els.resultsView.classList.add('active');
 }
@@ -770,8 +899,28 @@ function retryTaskTrial() {
 
 // ================= TASK LOGIC =================
 function handlePressStart() {
-    if (STATE.trialState === 'feedback') return;
-    if (STATE.trialState === 'go-delay') return;  // Ignore presses during the delay
+    if (STATE.trialState === 'feedback') {
+        STATE.isHolding = true; // track so auto-start can fire after the feedback pause
+        return;
+    }
+
+    if (STATE.trialState === 'go-delay') {
+        STATE.isHolding = true;
+        // User pressed before "Put your finger down" appeared — log as Anticipatory Press
+        const anticipatoryPressDelay = Date.now() - STATE.stimulusOnsetTime - STATE.rtRelease;
+        logMetric({
+            trialType: 'go',
+            isCorrect: false,
+            resultType: 'Mistake',
+            errorCategory: 'Anticipatory Press',
+            rt: null,
+            rtRelease: STATE.rtRelease,
+            rtDown: null,
+            responseTime: null,
+            anticipatoryPressDelay: anticipatoryPressDelay
+        });
+        return;
+    }
 
 
     if (STATE.trialState === 'stimulus' && STATE.currentTrialConfig?.type === 'nogo' && STATE.noGoSlipStartTime) {
@@ -854,12 +1003,19 @@ function handlePressEnd() {
             setPositionForNextPhase();
             setTrialState('go-delay');
 
-            // Wait a randomized delay before showing "Put your finger down"
+            // Use the deterministic prompt delay from the trial config
+            const promptDelay = STATE.currentTrialConfig.goPromptDelay;
             goDelayTimeout = setTimeout(() => {
                 STATE.putDownPromptTime = Date.now();
                 setTrialState('released');
                 updateUI();
-            }, getRandomGoDelay());
+                // If the user pressed during go-delay (anticipatory press), they're already
+                // holding — evaluate the GO trial immediately with rtDown ≈ 0.
+                if (STATE.isHolding) {
+                    STATE.rtDown = Date.now() - STATE.putDownPromptTime;
+                    evaluateGoTrial(true);
+                }
+            }, promptDelay);
         } else {
             STATE.noGoSlipStartTime = releaseTime;
         }
@@ -938,12 +1094,28 @@ function advanceTrial() {
     STATE.currentTrialIndex++;
     const sequence = getCurrentSequence();
 
-
     if (STATE.currentTrialIndex >= sequence.length) {
         feedbackTimeout = setTimeout(onComplete, 1500);
+    } else if (
+        !STATE.isPractice &&
+        STATE.currentTrialIndex % TRIALS_PER_BLOCK === 0
+    ) {
+        // Finished a block — show the rest screen before continuing
+        feedbackTimeout = setTimeout(() => {
+            const completedBlock = STATE.currentTrialIndex / TRIALS_PER_BLOCK;
+            const nextBlock = completedBlock + 1;
+            const totalBlocks = NUM_BLOCKS;
+            els.blockBreakTitle.innerText = `Block ${completedBlock} of ${totalBlocks} Complete`;
+            els.blockBreakSubtitle.innerText = 'Take a short rest.';
+            els.blockBreakNext.innerText = `Block ${nextBlock} starts when you're ready.`;
+            STATE.isHolding = false;
+            clearAllTimeouts();
+            els.taskUi.classList.add('hidden');
+            els.menuOverlay.classList.remove('hidden');
+            showMenuPhase('block-break');
+        }, 1500);
     } else {
         feedbackTimeout = setTimeout(() => {
-            setTrialState('waiting');
             STATE.currentTrialConfig = null;
             STATE.currentRT = null;
             STATE.noGoSlipStartTime = null;
@@ -952,8 +1124,6 @@ function advanceTrial() {
             STATE.rtDown = null;
             els.stimulusText.innerText = '';
             els.stimulusText.classList.add('opacity-0');
-            // els.stimulusText.classList.remove('animate-fadeInDown');
-
 
             const nextConfig = sequence[STATE.currentTrialIndex];
             if (nextConfig) {
@@ -964,8 +1134,20 @@ function advanceTrial() {
                 }
             }
 
-
-            updateUI();
+            if (STATE.isHolding && nextConfig) {
+                STATE.currentTrialConfig = nextConfig;
+                STATE.trialState = 'holding';
+                updateUI();
+                stimulusTimeout = setTimeout(() => {
+                    STATE.stimulusOnsetTime = Date.now();
+                    STATE.noGoSlipStartTime = null;
+                    setTrialState('stimulus');
+                    runStimulusLogic();
+                }, nextConfig.delay);
+            } else {
+                setTrialState('waiting');
+                updateUI();
+            }
         }, 1500);
     }
 }
@@ -1043,10 +1225,6 @@ function clearAllTimeouts() {
 }
 
 
-function getRandomGoDelay() {
-    const { min, max } = CONFIG.goPromptDelay;
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-}
 
 
 // ================= UI UPDATE - UPDATED WITH COLOR LOGIC =================
