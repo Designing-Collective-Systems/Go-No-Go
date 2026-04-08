@@ -802,11 +802,42 @@ function onTaskComplete() {
     console.log("Total Slips:", STATE.slipCount);
     console.table(STATE.currentPhaseTrials);
 
-
     els.taskUi.classList.add('hidden');
     els.menuOverlay.classList.remove('hidden');
-    if (STATE.isPractice) showMenuPhase('real-intro');
-    else showMenuPhase('complete');
+
+    if (STATE.isPractice) {
+        showMenuPhase('real-intro');
+    } else {
+        // Real session complete — save all trials (practice + real) to the DB,
+        // then show the completion screen.  The PID is assigned here, after the
+        // last trial of the last block.
+        saveSessionToDB()
+            .then(() => showMenuPhase('complete'))
+            .catch(err => {
+                console.error('DB save failed:', err);
+                showMenuPhase('complete'); // still show complete screen even on failure
+            });
+    }
+}
+
+
+// ================= DATABASE SAVE =================
+// Fetches the next PID from the server (MAX existing + 1), then POSTs
+// every trial logged during this session (practice and real combined).
+// Called once, at the end of the real session only.
+async function saveSessionToDB() {
+    const pidResponse = await fetch('/api/next-pid');
+    if (!pidResponse.ok) throw new Error('Failed to fetch next PID.');
+    const { pid } = await pidResponse.json();
+
+    const saveResponse = await fetch('/api/save-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pid, trials: STATE.allTrials })
+    });
+    if (!saveResponse.ok) throw new Error('Failed to save session.');
+
+    console.log(`Session saved to DB with pid=${pid}, ${STATE.allTrials.length} trials.`);
 }
 
 
