@@ -10,10 +10,8 @@ const { Pool }  = require('pg');
 const path      = require('path');
 
 const app  = express();
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
-});
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname)));   // serves index.html, css/, js/
 
@@ -64,69 +62,57 @@ app.get('/api/next-pid', async (req, res) => {
     }
 });
 
-// Saves all trials for a completed real session in a single transaction.
-app.post('/api/save-session', async (req, res) => {
-    const { pid, trials } = req.body;
+// Saves a single trial row. Called immediately after each real-session trial completes.
+app.post('/api/save-trial', async (req, res) => {
+    const { pid, trial: t } = req.body;
 
-    if (!pid || !Array.isArray(trials) || trials.length === 0) {
+    if (!pid || !t) {
         return res.status(400).json({ error: 'Invalid payload.' });
     }
 
-    const client = await pool.connect();
     try {
-        await client.query('BEGIN');
-
-        for (const t of trials) {
-            await client.query(
-                `INSERT INTO halt_trials (
-                    pid, phase, block_number, trial_index, trial_in_block,
-                    trial_type, is_correct, result_type, error_category,
-                    rt_release_ms, rt_down_ms, response_time_ms,
-                    anticipatory_press_delay_ms, slip_duration_ms, recontact_time_ms,
-                    trial_delay_ms, go_prompt_delay_ms,
-                    touch_x, touch_y,
-                    timestamp, stimulus_onset_timestamp, session_start_time
-                ) VALUES (
-                    $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,
-                    $13,$14,$15,$16,$17,$18,$19,$20,$21,$22
-                )`,
-                [
-                    pid,
-                    t.phase                  ?? null,
-                    t.blockNumber            ?? null,
-                    t.trialIndex             ?? null,
-                    t.trialInBlock           ?? null,
-                    t.trialType              ?? null,
-                    t.isCorrect              ?? null,
-                    t.resultType             ?? null,
-                    t.errorCategory          ?? null,
-                    t.rtRelease              ?? t.rt        ?? null,
-                    t.rtDown                 ?? null,
-                    t.responseTime           ?? null,
-                    t.anticipatoryPressDelay ?? null,
-                    t.slipDuration           ?? null,
-                    t.recontactTime          ?? null,
-                    t.trialDelay             ?? null,
-                    t.goPromptDelay          ?? null,
-                    t.touchX                 ?? null,
-                    t.touchY                 ?? null,
-                    t.timestamp              ?? null,
-                    t.stimulusOnsetTimestamp ?? null,
-                    t.sessionStartTime       ?? null,
-                ]
-            );
-        }
-
-        await client.query('COMMIT');
-        console.log(`Saved ${trials.length} trials for pid=${pid}`);
-        res.json({ success: true, pid, count: trials.length });
-
+        await pool.query(
+            `INSERT INTO halt_trials (
+                pid, phase, block_number, trial_index, trial_in_block,
+                trial_type, is_correct, result_type, error_category,
+                rt_release_ms, rt_down_ms, response_time_ms,
+                anticipatory_press_delay_ms, slip_duration_ms, recontact_time_ms,
+                trial_delay_ms, go_prompt_delay_ms,
+                touch_x, touch_y,
+                timestamp, stimulus_onset_timestamp, session_start_time
+            ) VALUES (
+                $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,
+                $13,$14,$15,$16,$17,$18,$19,$20,$21,$22
+            )`,
+            [
+                pid,
+                t.phase                  ?? null,
+                t.blockNumber            ?? null,
+                t.trialIndex             ?? null,
+                t.trialInBlock           ?? null,
+                t.trialType              ?? null,
+                t.isCorrect              ?? null,
+                t.resultType             ?? null,
+                t.errorCategory          ?? null,
+                t.rtRelease              ?? t.rt        ?? null,
+                t.rtDown                 ?? null,
+                t.responseTime           ?? null,
+                t.anticipatoryPressDelay ?? null,
+                t.slipDuration           ?? null,
+                t.recontactTime          ?? null,
+                t.trialDelay             ?? null,
+                t.goPromptDelay          ?? null,
+                t.touchX                 ?? null,
+                t.touchY                 ?? null,
+                t.timestamp              ?? null,
+                t.stimulusOnsetTimestamp ?? null,
+                t.sessionStartTime       ?? null,
+            ]
+        );
+        res.json({ success: true });
     } catch (err) {
-        await client.query('ROLLBACK');
-        console.error('save-session error:', err);
-        res.status(500).json({ error: 'Database error saving session.' });
-    } finally {
-        client.release();
+        console.error('save-trial error:', err);
+        res.status(500).json({ error: 'Database error saving trial.' });
     }
 });
 

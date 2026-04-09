@@ -36,19 +36,19 @@ const BLOCK_TRIAL_TYPES = [
 
 // Holding delay (ms) from button press to stimulus appearance — range 2 000–6 000 ms.
 const BLOCK_STIM_DELAYS = [
-    4000, 6000, 5000, 3000, 6000,
-    4000, 5000, 3000, 6000, 4000,
-    5000, 3000, 6000, 4000, 5000,
-    3000, 6000, 4000, 5000, 3000
+    2000, 3000, 2500, 1500, 3000,
+    2000, 2500, 1500, 3000, 2000,
+    2500, 1500, 3000, 2000, 2500,
+    1500, 3000, 2000, 2500, 1500
 ];
 
 // Delay (ms) from GO finger-lift to "Put your finger down" prompt — range 2 000–3 000 ms.
 // Only used for GO trials; ignored for NO GO trials.
 const BLOCK_PROMPT_DELAYS = [
-    2000, 3000, 2000, 2500, 2000,
-    3000, 2500, 2000, 3000, 2500,
-    2000, 3000, 2500, 2000, 3000,
-    2000, 2500, 2000, 3000, 2500
+    1000, 1500, 1000, 1000, 1000,
+    1500, 1000, 1000, 1500, 1000,
+    1000, 1500, 1000, 1000, 1500,
+    1000, 1000, 1000, 1500, 1000
 ];
 
 // Button position factors per trial position (–1 to 1).
@@ -103,14 +103,14 @@ const INSTRUCTION_STEPS = [
         id: 'task-overview',
         type: 'text',
         title: 'How This Task Works',
-        message: 'You\'ll press and hold a blue circle on the screen. You\'ll need to lift your finger when you see <strong style="color: #10b981">"GO"</strong>  — then wait for a prompt before pressing again. You\'ll need to keep holding when you see <strong style="color: #ef4444">"NO GO"</strong>.',
+        message: 'You\'ll press and hold a blue circle on the screen. You\'ll need to lift your finger when you see <strong style="color: #10b981">"LIFT"</strong>  — then wait for a prompt before pressing again. You\'ll need to keep holding when you see <strong style="color: #ef4444">"HOLD"</strong>.',
         buttonText: 'Got it, let\'s start!'
     },
     {
         id: 'go-explanation',
         type: 'text',
-        title: 'Learning GO Trials',
-        message: 'You\'ll see a blue circle on the screen. When the word <strong style="color: #10b981">"GO"</strong> appears above the circle, lift your finger quickly. Then wait — a prompt will appear saying "Put your finger down". Press the circle again as fast as you can only when you see that prompt.',
+        title: 'Learning LIFT Trials',
+        message: 'You\'ll see a blue circle on the screen. When the word <strong style="color: #10b981">"LIFT"</strong> appears above the circle, lift your finger quickly. Then wait — a prompt will appear saying "HOLD". Press the circle again as fast as you can only when you see that prompt.',
         buttonText: 'Ready to try it!'
     },
     {
@@ -128,8 +128,8 @@ const INSTRUCTION_STEPS = [
     {
         id: 'nogo-explanation',
         type: 'text',
-        title: 'Learning NO GO Trials',
-        message: 'Great job! Now when you see <strong style="color: #ef4444">"NO GO"</strong> appear above the circle, keep holding the circle. Do NOT lift your finger.',
+        title: 'Learning HOLD Trials',
+        message: 'Great job! Now when you see <strong style="color: #ef4444">"HOLD"</strong> appear above the circle, keep holding the circle. Do NOT lift your finger.',
         buttonText: 'Ready to try it!'
     },
     {
@@ -148,7 +148,7 @@ const INSTRUCTION_STEPS = [
         id: 'complete',
         type: 'text',
         title: 'Tutorial Complete!',
-        message: 'Excellent work! You now understand both <strong style="color: #10b981">GO</strong> and <strong style="color: #ef4444">NO GO</strong> trials.<br>Ready to start practicing?',
+        message: 'Excellent work! You now understand both <strong style="color: #10b981">LIFT</strong> and <strong style="color: #ef4444">HOLD</strong> trials.<br>Ready to start practicing?',
         buttonText: 'Start Practice'
     }
 ];
@@ -174,9 +174,10 @@ const STATE = {
     isInTutorial: false,
     tutorialStepIndex: 0,
     tutorialTrialComplete: false,
-    rtRelease: null,       // Time from GO onset to finger lift
-    putDownPromptTime: null, // Timestamp when "Put your finger down" appeared
-    rtDown: null           // Time from "Put your finger down" prompt to finger recontact
+    rtRelease: null,       // Time from LIFT onset to finger lift
+    putDownPromptTime: null, // Timestamp when "HOLD" prompt appeared
+    rtDown: null,          // Time from "HOLD" prompt to finger recontact
+    pid: null              // Assigned from DB at start of real session
 };
 
 
@@ -333,7 +334,7 @@ function handleTutorialPressStart(step) {
             if (step.trialType === 'go') {
                 goTimeout = setTimeout(() => {
                     if (!STATE.tutorialTrialComplete) {
-                        showTutorialRetry("Too slow! Please lift your finger when you see GO.");
+                        showTutorialRetry("Too slow! Please lift your finger when you see LIFT.");
                     }
                 }, 2500);
             } else if (step.trialType === 'nogo') {
@@ -347,9 +348,9 @@ function handleTutorialPressStart(step) {
                         STATE.tutorialTrialComplete = true;
                         els.tutorialContinueContainer.classList.remove('hidden');
                     } else {
-                        showTutorialRetry("You lifted your finger! Remember: NO GO means keep holding.");
+                        showTutorialRetry("You lifted your finger! Remember: HOLD means keep holding.");
                     }
-                }, 5000);
+                }, 2500);
             }
         }, step.delay);
     } else if (STATE.trialState === 'released' && step.trialType === 'go') {
@@ -382,7 +383,7 @@ function handleTutorialPressEnd(step) {
 
     if (STATE.trialState === 'holding') {
         clearTimeout(stimulusTimeout);
-        showTutorialRetry("You lifted your finger before seeing the instruction. Please keep holding until you see GO or NO GO. Let's try again!");
+        showTutorialRetry("You lifted your finger before seeing the instruction. Please keep holding until you see LIFT or HOLD. Let's try again!");
     } else if (STATE.trialState === 'stimulus') {
     if (step.trialType === 'go') {
         clearTimeout(goTimeout);
@@ -397,7 +398,7 @@ function handleTutorialPressEnd(step) {
         } else if (step.trialType === 'nogo') {
             STATE.noGoSlipStartTime = Date.now();
             clearTimeout(noGoTimeout);
-            showTutorialRetry("You lifted your finger! Remember: NO GO means keep holding. Let's try again!");
+            showTutorialRetry("You lifted your finger! Remember: HOLD means keep holding. Let's try again!");
         }
     }
 
@@ -421,14 +422,14 @@ function updateTutorialUI() {
         color = '#000000'; // BLACK
     } else if (trialState === 'stimulus') {
         if (step.trialType === 'go') {
-            text = 'GO';
+            text = 'LIFT';
             color = '#10b981'; // GREEN
         } else {
-            text = 'NO GO';
+            text = 'HOLD';
             color = '#ef4444'; // RED
         }
     } else if (trialState === 'released') {
-        text = 'Put your finger down';
+        text = 'HOLD';
         color = '#10b981'; // GREEN
     }
 
@@ -577,10 +578,8 @@ function logMetric(data) {
         touchY: STATE.lastInput.y
     };
 
-
     STATE.currentPhaseTrials.push(record);
     STATE.allTrials.push(record);
-
 
     const style = record.isCorrect ? 'color: #4ade80; font-weight: bold' : 'color: #f87171; font-weight: bold';
     console.group(`%c Event: ${record.resultType || 'Info'}`, style);
@@ -588,6 +587,11 @@ function logMetric(data) {
     if (record.rt) console.log(`Reaction Time: ${record.rt}ms`);
     console.log(`Error: ${record.errorCategory}`);
     console.groupEnd();
+
+    // Only log real-session trials. Practice trials have no PID.
+    if (!STATE.isPractice && STATE.pid != null) {
+        saveTrialToDB(record).catch(err => console.error('Trial save failed:', err));
+    }
 }
 
 
@@ -751,6 +755,7 @@ function resetApp() {
     STATE.slipCount = 0;
     STATE.isInTutorial = false;
     STATE.tutorialStepIndex = 0;
+    STATE.pid = null;
     showMenuPhase('welcome');
 }
 
@@ -764,7 +769,6 @@ function startPhase(phaseName) {
     STATE.currentTrialIndex = 0;
     STATE.sessionStartTime = new Date().toISOString();
 
-
     if (phaseName === 'practice') {
         STATE.phase = 'practice';
         STATE.isPractice = true;
@@ -773,10 +777,17 @@ function startPhase(phaseName) {
     } else {
         STATE.phase = 'real';
         STATE.isPractice = false;
+        // Fetch and store PID before the first trial fires.
+        fetch('/api/next-pid')
+            .then(r => r.json())
+            .then(({ pid }) => {
+                STATE.pid = pid;
+                console.log(`Real session started — pid=${pid}`);
+            })
+            .catch(err => console.error('Failed to fetch PID:', err));
         els.menuOverlay.classList.add('hidden');
         els.taskUi.classList.remove('hidden');
     }
-
 
     const sequence = getCurrentSequence();
     if (CONFIG.circlePosition === 'fixed') {
@@ -808,36 +819,20 @@ function onTaskComplete() {
     if (STATE.isPractice) {
         showMenuPhase('real-intro');
     } else {
-        // Real session complete — save all trials (practice + real) to the DB,
-        // then show the completion screen.  The PID is assigned here, after the
-        // last trial of the last block.
-        saveSessionToDB()
-            .then(() => showMenuPhase('complete'))
-            .catch(err => {
-                console.error('DB save failed:', err);
-                showMenuPhase('complete'); // still show complete screen even on failure
-            });
+        showMenuPhase('complete');
     }
 }
 
 
 // ================= DATABASE SAVE =================
-// Fetches the next PID from the server (MAX existing + 1), then POSTs
-// every trial logged during this session (practice and real combined).
-// Called once, at the end of the real session only.
-async function saveSessionToDB() {
-    const pidResponse = await fetch('/api/next-pid');
-    if (!pidResponse.ok) throw new Error('Failed to fetch next PID.');
-    const { pid } = await pidResponse.json();
-
-    const saveResponse = await fetch('/api/save-session', {
+// Called by logMetric for every real-session trial immediately after it completes.
+async function saveTrialToDB(trial) {
+    const response = await fetch('/api/save-trial', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pid, trials: STATE.allTrials })
+        body: JSON.stringify({ pid: STATE.pid, trial })
     });
-    if (!saveResponse.ok) throw new Error('Failed to save session.');
-
-    console.log(`Session saved to DB with pid=${pid}, ${STATE.allTrials.length} trials.`);
+    if (!response.ok) throw new Error(`save-trial HTTP ${response.status}`);
 }
 
 
@@ -1021,7 +1016,7 @@ function handlePressEnd() {
         });
 
 
-        showRetryModal("You lifted your finger before seeing the instruction. Please keep holding until you see GO or NO GO. Let's try again!");
+        showRetryModal("You lifted your finger before seeing the instruction. Please keep holding until you see LIFT or HOLD. Let's try again!");
 
 
     } else if (STATE.trialState === 'stimulus') {
@@ -1064,7 +1059,7 @@ function runStimulusLogic() {
                 errorCategory: 'Late Release',
                 rt: null
             });
-            showRetryModal("Too slow! Please lift your finger when you see GO.");
+            showRetryModal("Too slow! Please lift your finger when you see LIFT.");
         }, 2500);
     } else {
         noGoTimeout = setTimeout(() => {
@@ -1073,7 +1068,7 @@ function runStimulusLogic() {
             } else {
                 evaluateNoGoTrial(false);
             }
-        }, 5000);
+        }, 2500);
     }
 }
 
@@ -1116,7 +1111,7 @@ function evaluateNoGoTrial(finalSuccess) {
             errorCategory: 'Failed Inhibition',
             rt: STATE.noGoSlipStartTime ? (STATE.noGoSlipStartTime - STATE.stimulusOnsetTime) : null
         });
-        showRetryModal("You lifted your finger! Remember: NO GO means keep holding. Let's try again!");
+        showRetryModal("You lifted your finger! Remember: HOLD means keep holding. Let's try again!");
     }
 }
 
@@ -1276,17 +1271,17 @@ function updateUI() {
         color = '#000000'; // BLACK
     } else if (trialState === 'stimulus') {
         if (currentTrialConfig.type === 'go') {
-            text = 'GO';
+            text = 'LIFT';
             color = '#10b981'; // GREEN
         } else {
-            text = 'NO GO';
+            text = 'HOLD';
             color = '#ef4444'; // RED
         }
     } else if (trialState === 'go-delay') {
         text = '';
         color = '#000000';
     } else if (trialState === 'released') {
-        text = 'Put your finger down';
+        text = 'HOLD';
         color = '#10b981'; // GREEN
     } else if (trialState === 'feedback') {
         text = '';  // No feedback in practice/real sessions
