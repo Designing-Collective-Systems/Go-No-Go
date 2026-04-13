@@ -71,9 +71,9 @@ const BLOCK_Y_FACTORS = [
 //                 EDIT TRIAL SEQUENCES HERE
 // =========================================================
 const PRACTICE_SEQUENCE = [
-    { type: 'go',   delay: 6000, goPromptDelay: 2000, xFactor: 0,    yFactor: 0    },
-    { type: 'go',   delay: 7000, goPromptDelay: 2500, xFactor: -0.5, yFactor: 0.5  },
-    { type: 'nogo', delay: 6000, goPromptDelay: 2000, xFactor: 0.5,  yFactor: -0.5 },
+    { type: 'go',   delay: 3000, goPromptDelay: 2000, xFactor: 0,    yFactor: 0    },
+    { type: 'go',   delay: 3000, goPromptDelay: 2500, xFactor: -0.5, yFactor: 0.5  },
+    { type: 'nogo', delay: 3000, goPromptDelay: 2000, xFactor: 0.5,  yFactor: -0.5 },
 ];
 
 // Real sequence is generated from block config above. Do not edit directly.
@@ -265,6 +265,7 @@ function showInstructionStep() {
 
         updateTutorialButtonPosition(0, 0);
         setupTutorialTrial(step);
+        updateTutorialUI();
     }
 }
 
@@ -350,7 +351,7 @@ function handleTutorialPressStart(step) {
                     } else {
                         showTutorialRetry("You lifted your finger! Remember: HOLD means keep holding.");
                     }
-                }, 2500);
+                }, 5000);
             }
         }, step.delay);
     } else if (STATE.trialState === 'released' && step.trialType === 'go') {
@@ -1068,7 +1069,7 @@ function runStimulusLogic() {
             } else {
                 evaluateNoGoTrial(false);
             }
-        }, 2500);
+        }, 5000);
     }
 }
 
