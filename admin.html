@@ -1,0 +1,1521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HALT Admin</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #f7f7f5;
+            --surface: #ffffff;
+            --border: #e5e5e2;
+            --border-strong: #d0d0cc;
+            --text: #1a1a18;
+            --text-secondary: #6b6b66;
+            --text-muted: #9b9b96;
+            --accent: #1a1a18;
+            --go: #16a34a;
+            --nogo: #dc2626;
+            --warning: #d97706;
+            --blue: #2563eb;
+            --mono: 'DM Mono', monospace;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* ── Auth Screen ── */
+        #auth-screen {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .auth-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 40px;
+            width: 100%;
+            max-width: 380px;
+        }
+
+        .auth-card h1 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .auth-card p {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 28px;
+        }
+
+        .field { margin-bottom: 16px; }
+
+        .field label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .field input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-strong);
+            border-radius: 6px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            color: var(--text);
+            background: var(--bg);
+            outline: none;
+            transition: border-color 0.12s;
+        }
+
+        .field input:focus { border-color: var(--accent); background: var(--surface); }
+
+        .btn-primary {
+            width: 100%;
+            padding: 11px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: opacity 0.12s;
+            margin-top: 4px;
+        }
+
+        .btn-primary:hover { opacity: 0.85; }
+        .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .auth-error {
+            margin-top: 14px;
+            padding: 10px 12px;
+            background: #fee2e2;
+            color: var(--nogo);
+            border-radius: 6px;
+            font-size: 13px;
+            display: none;
+        }
+
+        /* ── Admin Panel ── */
+        #admin-panel { display: none; min-height: 100vh; }
+
+        .admin-header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            gap: 0;
+            height: 52px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .admin-logo {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+            margin-right: 32px;
+            white-space: nowrap;
+        }
+
+        .admin-logo span { color: var(--text-muted); font-weight: 400; }
+
+        .tab-nav { display: flex; gap: 0; flex: 1; }
+
+        .tab-btn {
+            padding: 0 18px;
+            height: 52px;
+            border: none;
+            background: none;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: color 0.12s, border-color 0.12s;
+        }
+
+        .tab-btn:hover { color: var(--text); }
+        .tab-btn.active { color: var(--text); border-bottom-color: var(--accent); }
+
+        .logout-btn {
+            padding: 7px 14px;
+            border: 1px solid var(--border-strong);
+            border-radius: 6px;
+            background: none;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: border-color 0.12s, color 0.12s;
+        }
+
+        .logout-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+        /* ── Tab Content ── */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .tab-body {
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 32px 24px 64px;
+        }
+
+        /* ── Section ── */
+        .section { margin-bottom: 36px; }
+
+        .section-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-label::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        /* ── Form ── */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 16px;
+        }
+
+        .form-field { }
+
+        .form-field label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .form-field input[type="number"],
+        .form-field input[type="text"],
+        .form-field input[type="password"] {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid var(--border-strong);
+            border-radius: 6px;
+            font-family: var(--mono);
+            font-size: 13px;
+            color: var(--text);
+            background: var(--bg);
+            outline: none;
+            transition: border-color 0.12s;
+        }
+
+        .form-field input:focus { border-color: var(--accent); background: var(--surface); }
+        .form-field input[readonly] { opacity: 0.5; cursor: default; }
+
+        .form-field .hint {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        textarea.array-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-strong);
+            border-radius: 6px;
+            font-family: var(--mono);
+            font-size: 12px;
+            color: var(--text);
+            background: var(--bg);
+            outline: none;
+            resize: vertical;
+            min-height: 80px;
+            transition: border-color 0.12s;
+            line-height: 1.6;
+        }
+
+        textarea.array-input:focus { border-color: var(--accent); background: var(--surface); }
+
+        /* ── Trial Type Grid ── */
+        .trial-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .trial-cell {
+            width: 52px;
+            height: 36px;
+            border-radius: 5px;
+            border: 1.5px solid var(--border-strong);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.1s, border-color 0.1s, color 0.1s;
+            user-select: none;
+        }
+
+        .trial-cell.go {
+            background: #dcfce7;
+            border-color: #86efac;
+            color: var(--go);
+        }
+
+        .trial-cell.nogo {
+            background: #fee2e2;
+            border-color: #fca5a5;
+            color: var(--nogo);
+        }
+
+        .trial-cell:hover { filter: brightness(0.94); }
+
+        .trial-grid-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+
+        .trial-counts {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 10px;
+        }
+
+        .trial-counts .go-count { color: var(--go); font-weight: 600; }
+        .trial-counts .nogo-count { color: var(--nogo); font-weight: 600; }
+        .trial-counts .error { color: var(--nogo); }
+
+        /* ── Practice Sequence Table ── */
+        .practice-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .practice-table th {
+            text-align: left;
+            padding: 8px 12px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .practice-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+        .practice-table tr:last-child td { border-bottom: none; }
+
+        .practice-table select,
+        .practice-table input[type="number"] {
+            padding: 5px 8px;
+            border: 1px solid var(--border-strong);
+            border-radius: 5px;
+            font-family: var(--mono);
+            font-size: 12px;
+            background: var(--bg);
+            outline: none;
+        }
+
+        .practice-table select:focus,
+        .practice-table input:focus { border-color: var(--accent); }
+
+        .btn-add-row {
+            margin-top: 10px;
+            padding: 6px 14px;
+            border: 1px dashed var(--border-strong);
+            border-radius: 6px;
+            background: none;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 12px;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+
+        .btn-add-row:hover { border-color: var(--accent); color: var(--accent); }
+
+        .btn-remove-row {
+            padding: 3px 8px;
+            border: none;
+            background: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-remove-row:hover { color: var(--nogo); }
+
+        /* ── Save / action buttons ── */
+        .action-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .btn-save {
+            padding: 9px 24px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: opacity 0.12s;
+        }
+
+        .btn-save:hover { opacity: 0.85; }
+        .btn-save:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .save-status {
+            font-size: 13px;
+            color: var(--text-muted);
+            transition: color 0.2s;
+        }
+
+        .save-status.ok { color: var(--go); }
+        .save-status.err { color: var(--nogo); }
+
+        /* ── Validation error ── */
+        .validation-error {
+            margin-top: 8px;
+            padding: 8px 12px;
+            background: #fee2e2;
+            color: var(--nogo);
+            border-radius: 6px;
+            font-size: 12px;
+            display: none;
+        }
+
+        /* ── Results Tab ── */
+        .results-body {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 32px 24px 64px;
+        }
+
+        .participant-table-wrap { overflow-x: auto; }
+
+        table.ptable {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        table.ptable thead th {
+            text-align: left;
+            padding: 10px 16px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        table.ptable tbody td {
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border);
+            font-family: var(--mono);
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        table.ptable tbody tr:hover td { background: #f0f0ee; cursor: pointer; }
+        table.ptable tbody tr.selected td { background: #e8e8e5; }
+        table.ptable tbody tr:last-child td { border-bottom: none; }
+
+        .view-btn {
+            padding: 4px 12px;
+            border: 1px solid var(--border-strong);
+            border-radius: 5px;
+            background: none;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 12px;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+
+        .view-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+        /* ── Participant Dashboard ── */
+        #participant-dashboard { display: none; margin-top: 32px; }
+
+        .dash-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .dash-pid {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .dash-pid span { color: var(--text-secondary); font-weight: 400; }
+
+        .phase-toggle {
+            display: inline-flex;
+            border: 1px solid var(--border-strong);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .phase-toggle button {
+            padding: 6px 14px;
+            border: none;
+            border-right: 1px solid var(--border-strong);
+            background: transparent;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: background 0.1s, color 0.1s;
+        }
+
+        .phase-toggle button:last-child { border-right: none; }
+        .phase-toggle button.active { background: var(--accent); color: #fff; }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 1px;
+            background: var(--border);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .stat-cell { background: var(--surface); padding: 14px 18px; }
+
+        .stat-value {
+            font-family: var(--mono);
+            font-size: 20px;
+            font-weight: 500;
+            letter-spacing: -0.02em;
+            color: var(--text);
+            line-height: 1.2;
+        }
+
+        .stat-label { font-size: 12px; font-weight: 500; color: var(--text-secondary); margin-top: 3px; }
+        .stat-hint { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+        .stat-value.go { color: var(--go); }
+        .stat-value.nogo { color: var(--nogo); }
+        .stat-value.warn { color: var(--warning); }
+
+        .chart-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        @media (max-width: 680px) { .chart-grid { grid-template-columns: 1fr; } }
+
+        .chart-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .chart-card + .chart-card { margin-top: 0; }
+
+        .chart-header {
+            padding: 14px 18px 10px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+        }
+
+        .chart-title { font-size: 13px; font-weight: 600; }
+        .chart-subtitle { font-size: 12px; color: var(--text-muted); }
+        .chart-body { padding: 4px; }
+
+        .chart-full {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .empty-state {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 140px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* ── Data table ── */
+        .table-wrap { overflow-x: auto; }
+
+        table.dtable {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        table.dtable thead th {
+            text-align: left;
+            padding: 9px 12px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        table.dtable tbody td {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border);
+            font-family: var(--mono);
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        table.dtable tbody tr:last-child td { border-bottom: none; }
+        table.dtable tbody tr:hover td { background: var(--bg); }
+
+        .tag {
+            display: inline-block;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        .tag-go   { background: #dcfce7; color: var(--go); }
+        .tag-nogo { background: #fee2e2; color: var(--nogo); }
+        .tag-yes  { background: #dcfce7; color: var(--go); }
+        .tag-no   { background: #fee2e2; color: var(--nogo); }
+        .tag-slip { background: #fef3c7; color: var(--warning); }
+
+        /* ── Loading/empty states ── */
+        .loading-row td { text-align: center; color: var(--text-muted); padding: 32px !important; font-family: 'DM Sans', sans-serif !important; }
+
+        .plotly .modebar { display: none !important; }
+    </style>
+</head>
+<body>
+
+<!-- ═══ AUTH SCREEN ════════════════════════════════════════ -->
+<div id="auth-screen">
+    <div class="auth-card">
+        <h1 id="auth-title">HALT Admin</h1>
+        <p id="auth-subtitle">Enter your password to continue.</p>
+
+        <!-- Login form -->
+        <div id="login-form">
+            <div class="field">
+                <label>Password</label>
+                <input type="password" id="login-password" placeholder="Admin password" autocomplete="current-password">
+            </div>
+            <button class="btn-primary" id="login-btn" onclick="doLogin()">Sign in</button>
+            <div class="auth-error" id="login-error"></div>
+        </div>
+
+        <!-- First-time setup form -->
+        <div id="setup-form" style="display:none">
+            <div class="field">
+                <label>New Password</label>
+                <input type="password" id="setup-password" placeholder="At least 8 characters">
+            </div>
+            <div class="field">
+                <label>Confirm Password</label>
+                <input type="password" id="setup-confirm" placeholder="Repeat password">
+            </div>
+            <button class="btn-primary" id="setup-btn" onclick="doSetup()">Create Admin Account</button>
+            <div class="auth-error" id="setup-error"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ ADMIN PANEL ════════════════════════════════════════ -->
+<div id="admin-panel">
+    <header class="admin-header">
+        <div class="admin-logo">HALT <span>/ Admin</span></div>
+        <nav class="tab-nav">
+            <button class="tab-btn active" onclick="showTab('config')">Config</button>
+            <button class="tab-btn" onclick="showTab('results')">Results</button>
+            <button class="tab-btn" onclick="showTab('password')">Password</button>
+        </nav>
+        <button class="logout-btn" onclick="doLogout()">Log out</button>
+    </header>
+
+    <!-- ── Config Tab ── -->
+    <div id="tab-config" class="tab-content active">
+        <div class="tab-body">
+
+            <div class="section">
+                <div class="section-label">Session Structure</div>
+                <div class="form-grid">
+                    <div class="form-field">
+                        <label>Blocks</label>
+                        <input type="number" id="cfg-num-blocks" min="1" max="20" value="2">
+                        <div class="hint">Number of blocks in the real session</div>
+                    </div>
+                    <div class="form-field">
+                        <label>LIFT trials / block</label>
+                        <input type="number" id="cfg-go-per-block" min="1" max="100" value="15">
+                    </div>
+                    <div class="form-field">
+                        <label>HOLD trials / block</label>
+                        <input type="number" id="cfg-nogo-per-block" min="1" max="100" value="5">
+                    </div>
+                    <div class="form-field">
+                        <label>Trials / block (derived)</label>
+                        <input type="number" id="cfg-trials-per-block" readonly>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-label">Trial Sequence (one entry per trial position)</div>
+                <div class="trial-grid-label">Click a cell to toggle between LIFT and HOLD.</div>
+                <div id="trial-type-grid" class="trial-grid"></div>
+                <div class="trial-counts" id="trial-counts"></div>
+                <div class="validation-error" id="trial-type-error"></div>
+            </div>
+
+            <div class="section">
+                <div class="section-label">Stimulus Delays (ms) — one per trial position, comma-separated</div>
+                <textarea class="array-input" id="cfg-stim-delays" rows="3"
+                    placeholder="e.g. 2000, 3000, 2500, 1500 ..."></textarea>
+                <div class="validation-error" id="stim-delay-error"></div>
+            </div>
+
+            <div class="section">
+                <div class="section-label">LIFT Prompt Delays (ms) — one per trial position, comma-separated</div>
+                <textarea class="array-input" id="cfg-prompt-delays" rows="3"
+                    placeholder="e.g. 1000, 1500, 1000, 1000 ..."></textarea>
+                <div class="validation-error" id="prompt-delay-error"></div>
+            </div>
+
+            <div class="section">
+                <div class="section-label">Practice Sequence</div>
+                <table class="practice-table" id="practice-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Type</th>
+                            <th>Stim Delay (ms)</th>
+                            <th>Prompt Delay (ms)</th>
+                            <th>X Factor</th>
+                            <th>Y Factor</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="practice-tbody"></tbody>
+                </table>
+                <button class="btn-add-row" onclick="addPracticeRow()">+ Add trial</button>
+            </div>
+
+            <div class="action-row">
+                <button class="btn-save" onclick="saveConfig()">Save Configuration</button>
+                <span class="save-status" id="config-status"></span>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ── Results Tab ── -->
+    <div id="tab-results" class="tab-content">
+        <div class="results-body">
+
+            <div class="section">
+                <div class="section-label">Participants</div>
+                <div class="participant-table-wrap">
+                    <table class="ptable">
+                        <thead>
+                            <tr>
+                                <th>PID</th>
+                                <th>Session Date</th>
+                                <th>Real Trials</th>
+                                <th>Total Rows</th>
+                                <th>Accuracy (%)</th>
+                                <th>Mean RT-Release (ms)</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="participant-tbody">
+                            <tr class="loading-row"><td colspan="7">Loading…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Per-participant dashboard (shown after selecting a row) -->
+            <div id="participant-dashboard">
+                <div class="dash-header">
+                    <div class="dash-pid">Participant <span id="dash-pid-label">—</span></div>
+                    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                        <div class="phase-toggle">
+                            <button class="active" onclick="setDashPhase('both')">Both</button>
+                            <button onclick="setDashPhase('practice')">Practice</button>
+                            <button onclick="setDashPhase('real')">Real Study</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-label">Summary</div>
+                    <div class="stat-grid">
+                        <div class="stat-cell"><div class="stat-value" id="d-total">—</div><div class="stat-label">Total trials</div></div>
+                        <div class="stat-cell"><div class="stat-value" id="d-accuracy">—</div><div class="stat-label">Accuracy</div></div>
+                        <div class="stat-cell"><div class="stat-value go" id="d-go-acc">—</div><div class="stat-label">LIFT accuracy</div></div>
+                        <div class="stat-cell"><div class="stat-value nogo" id="d-nogo-acc">—</div><div class="stat-label">HOLD accuracy</div></div>
+                        <div class="stat-cell"><div class="stat-value warn" id="d-early">—</div><div class="stat-label">Early releases</div></div>
+                        <div class="stat-cell"><div class="stat-value warn" id="d-anticipatory">—</div><div class="stat-label">Anticipatory</div></div>
+                        <div class="stat-cell"><div class="stat-value warn" id="d-slips">—</div><div class="stat-label">Slips</div></div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-label">Reaction Times — LIFT Trials</div>
+                    <div class="stat-grid">
+                        <div class="stat-cell"><div class="stat-value" id="d-mean-rt">—</div><div class="stat-label">Mean RT-Release (ms)</div></div>
+                        <div class="stat-cell"><div class="stat-value" id="d-median-rt">—</div><div class="stat-label">Median RT-Release (ms)</div></div>
+                        <div class="stat-cell"><div class="stat-value" id="d-sd-rt">—</div><div class="stat-label">RT-Release SD (ms)</div></div>
+                        <div class="stat-cell"><div class="stat-value" id="d-mean-rtdown">—</div><div class="stat-label">Mean RT-Down (ms)</div></div>
+                        <div class="stat-cell"><div class="stat-value" id="d-mean-resp">—</div><div class="stat-label">Mean Total Response (ms)</div></div>
+                        <div class="stat-cell"><div class="stat-value warn" id="d-mean-slip">—</div><div class="stat-label">Mean Slip Duration (ms)</div></div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-label">Charts</div>
+                    <div class="chart-grid" style="margin-bottom:12px;">
+                        <div class="chart-card">
+                            <div class="chart-header"><div class="chart-title">RT-Release</div><div class="chart-subtitle">LIFT trials</div></div>
+                            <div class="chart-body" id="d-chart-rt-hist"></div>
+                        </div>
+                        <div class="chart-card">
+                            <div class="chart-header"><div class="chart-title">RT-Down</div><div class="chart-subtitle">Time to recontact after prompt</div></div>
+                            <div class="chart-body" id="d-chart-rtdown-hist"></div>
+                        </div>
+                    </div>
+                    <div class="chart-full">
+                        <div class="chart-header"><div class="chart-title">RT-Release over trials</div></div>
+                        <div class="chart-body" id="d-chart-rt-trial"></div>
+                    </div>
+                    <div class="chart-grid">
+                        <div class="chart-card">
+                            <div class="chart-header"><div class="chart-title">RT by Phase</div><div class="chart-subtitle">Practice vs Real Study</div></div>
+                            <div class="chart-body" id="d-chart-phase-box"></div>
+                        </div>
+                        <div class="chart-card">
+                            <div class="chart-header"><div class="chart-title">Accuracy by Phase</div></div>
+                            <div class="chart-body" id="d-chart-phase-acc"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-label">Trial Data</div>
+                    <div class="table-wrap">
+                        <table class="dtable">
+                            <thead>
+                                <tr>
+                                    <th>Phase</th><th>Block</th><th>Trial</th><th>In Block</th>
+                                    <th>Type</th><th>Correct</th><th>Result</th><th>Error</th>
+                                    <th>RT-Release</th><th>RT-Down</th><th>Response</th>
+                                    <th>Anticipatory</th><th>Slip (ms)</th>
+                                    <th>Stim Delay</th><th>Prompt Delay</th>
+                                    <th>X</th><th>Y</th><th>Timestamp</th>
+                                </tr>
+                            </thead>
+                            <tbody id="d-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ── Password Tab ── -->
+    <div id="tab-password" class="tab-content">
+        <div class="tab-body" style="max-width:420px;">
+            <div class="section">
+                <div class="section-label">Change Password</div>
+                <div class="form-field" style="margin-bottom:14px;">
+                    <label>Current Password</label>
+                    <input type="password" id="pw-current" autocomplete="current-password">
+                </div>
+                <div class="form-field" style="margin-bottom:14px;">
+                    <label>New Password</label>
+                    <input type="password" id="pw-new" autocomplete="new-password">
+                    <div class="hint">Minimum 8 characters</div>
+                </div>
+                <div class="form-field" style="margin-bottom:20px;">
+                    <label>Confirm New Password</label>
+                    <input type="password" id="pw-confirm" autocomplete="new-password">
+                </div>
+                <div class="action-row">
+                    <button class="btn-save" onclick="changePassword()">Update Password</button>
+                    <span class="save-status" id="pw-status"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+// ═══ AUTH ═══════════════════════════════════════════════════
+
+let TOKEN = sessionStorage.getItem('halt_admin_token') || null;
+
+async function api(method, path, body) {
+    const opts = {
+        method,
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Token': TOKEN || '' }
+    };
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch(path, opts);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Request failed');
+    return data;
+}
+
+async function init() {
+    const { hasPassword } = await fetch('/api/admin/has-password').then(r => r.json());
+
+    if (!hasPassword) {
+        document.getElementById('auth-title').textContent = 'Create Admin Account';
+        document.getElementById('auth-subtitle').textContent = 'No admin account exists yet. Set a password to continue.';
+        document.getElementById('login-form').style.display = 'none';
+        document.getElementById('setup-form').style.display = 'block';
+        return;
+    }
+
+    if (TOKEN) {
+        const { valid } = await fetch('/api/admin/check', {
+            headers: { 'X-Admin-Token': TOKEN }
+        }).then(r => r.json());
+        if (valid) { showAdmin(); return; }
+        TOKEN = null;
+        sessionStorage.removeItem('halt_admin_token');
+    }
+}
+
+async function doLogin() {
+    const password = document.getElementById('login-password').value;
+    const errEl = document.getElementById('login-error');
+    const btn = document.getElementById('login-btn');
+    errEl.style.display = 'none';
+    btn.disabled = true;
+    btn.textContent = 'Signing in…';
+    try {
+        const { token } = await api('POST', '/api/admin/login', { password });
+        TOKEN = token;
+        sessionStorage.setItem('halt_admin_token', token);
+        showAdmin();
+    } catch (e) {
+        errEl.textContent = e.message;
+        errEl.style.display = 'block';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Sign in';
+    }
+}
+
+async function doSetup() {
+    const password = document.getElementById('setup-password').value;
+    const confirm  = document.getElementById('setup-confirm').value;
+    const errEl    = document.getElementById('setup-error');
+    const btn      = document.getElementById('setup-btn');
+    errEl.style.display = 'none';
+
+    if (password !== confirm) {
+        errEl.textContent = 'Passwords do not match.';
+        errEl.style.display = 'block';
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Creating…';
+    try {
+        await api('POST', '/api/admin/setup', { password });
+        // Immediately log in with the new password
+        const { token } = await api('POST', '/api/admin/login', { password });
+        TOKEN = token;
+        sessionStorage.setItem('halt_admin_token', token);
+        showAdmin();
+    } catch (e) {
+        errEl.textContent = e.message;
+        errEl.style.display = 'block';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Create Admin Account';
+    }
+}
+
+async function doLogout() {
+    try { await api('POST', '/api/admin/logout'); } catch (_) {}
+    TOKEN = null;
+    sessionStorage.removeItem('halt_admin_token');
+    location.reload();
+}
+
+function showAdmin() {
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('admin-panel').style.display = 'block';
+    loadConfigForm();
+    loadParticipants();
+}
+
+// Enter key support on auth inputs
+document.getElementById('login-password').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+});
+
+// ═══ TAB NAV ════════════════════════════════════════════════
+
+function showTab(name) {
+    document.querySelectorAll('.tab-btn').forEach((b, i) => {
+        b.classList.toggle('active', ['config','results','password'][i] === name);
+    });
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+}
+
+// ═══ CONFIG ═════════════════════════════════════════════════
+
+let cfgData = null;
+let trialTypes = [];
+
+function updateDerivedTrials() {
+    const go   = parseInt(document.getElementById('cfg-go-per-block').value) || 0;
+    const nogo = parseInt(document.getElementById('cfg-nogo-per-block').value) || 0;
+    document.getElementById('cfg-trials-per-block').value = go + nogo;
+    rebuildTrialGrid(go + nogo);
+}
+
+['cfg-go-per-block', 'cfg-nogo-per-block', 'cfg-num-blocks'].forEach(id => {
+    document.getElementById(id).addEventListener('input', updateDerivedTrials);
+});
+
+function rebuildTrialGrid(targetLen) {
+    // Resize trialTypes to match targetLen, filling with 'go' if expanding
+    while (trialTypes.length < targetLen) trialTypes.push('go');
+    trialTypes = trialTypes.slice(0, targetLen);
+    renderTrialGrid();
+}
+
+function renderTrialGrid() {
+    const grid = document.getElementById('trial-type-grid');
+    grid.innerHTML = '';
+    trialTypes.forEach((t, i) => {
+        const cell = document.createElement('div');
+        cell.className = 'trial-cell ' + t;
+        cell.title = `Trial ${i + 1} — click to toggle`;
+        cell.textContent = t === 'go' ? 'LIFT' : 'HOLD';
+        cell.addEventListener('click', () => {
+            trialTypes[i] = trialTypes[i] === 'go' ? 'nogo' : 'go';
+            renderTrialGrid();
+        });
+        grid.appendChild(cell);
+    });
+    updateTrialCounts();
+}
+
+function updateTrialCounts() {
+    const goCount   = trialTypes.filter(t => t === 'go').length;
+    const nogoCount = trialTypes.filter(t => t === 'nogo').length;
+    const goTarget   = parseInt(document.getElementById('cfg-go-per-block').value) || 0;
+    const nogoTarget = parseInt(document.getElementById('cfg-nogo-per-block').value) || 0;
+
+    const goOk   = goCount   === goTarget;
+    const nogoOk = nogoCount === nogoTarget;
+
+    document.getElementById('trial-counts').innerHTML =
+        `<span class="go-count">${goCount} LIFT</span> / <span class="nogo-count">${nogoCount} HOLD</span>` +
+        (!goOk   ? ` — <span class="error">need exactly ${goTarget} LIFT</span>` : '') +
+        (!nogoOk ? ` — <span class="error">need exactly ${nogoTarget} HOLD</span>` : '');
+}
+
+function addPracticeRow(trial) {
+    const tbody = document.getElementById('practice-tbody');
+    const idx   = tbody.children.length + 1;
+    const t = trial || { type: 'go', delay: 3000, goPromptDelay: 1000, xFactor: 0, yFactor: 0 };
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+        <td style="color:var(--text-muted)">${idx}</td>
+        <td><select>
+            <option value="go"   ${t.type === 'go'   ? 'selected' : ''}>LIFT</option>
+            <option value="nogo" ${t.type === 'nogo' ? 'selected' : ''}>HOLD</option>
+        </select></td>
+        <td><input type="number" value="${t.delay}" min="0" style="width:90px"></td>
+        <td><input type="number" value="${t.goPromptDelay}" min="0" style="width:90px"></td>
+        <td><input type="number" value="${t.xFactor}" min="-1" max="1" step="0.1" style="width:70px"></td>
+        <td><input type="number" value="${t.yFactor}" min="-1" max="1" step="0.1" style="width:70px"></td>
+        <td><button class="btn-remove-row" onclick="removePracticeRow(this)">✕</button></td>
+    `;
+    tbody.appendChild(tr);
+}
+
+function removePracticeRow(btn) {
+    btn.closest('tr').remove();
+    // Renumber
+    document.querySelectorAll('#practice-tbody tr').forEach((tr, i) => {
+        tr.cells[0].textContent = i + 1;
+    });
+}
+
+function getPracticeSequence() {
+    const rows = document.querySelectorAll('#practice-tbody tr');
+    return Array.from(rows).map(tr => ({
+        type:          tr.querySelector('select').value,
+        delay:         parseInt(tr.querySelectorAll('input')[0].value) || 0,
+        goPromptDelay: parseInt(tr.querySelectorAll('input')[1].value) || 0,
+        xFactor:       parseFloat(tr.querySelectorAll('input')[2].value) || 0,
+        yFactor:       parseFloat(tr.querySelectorAll('input')[3].value) || 0
+    }));
+}
+
+function parseArray(str) {
+    return str.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
+}
+
+function showError(id, msg) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.style.display = msg ? 'block' : 'none';
+}
+
+async function loadConfigForm() {
+    try {
+        cfgData = await api('GET', '/api/admin/config');
+        document.getElementById('cfg-num-blocks').value    = cfgData.NUM_BLOCKS;
+        document.getElementById('cfg-go-per-block').value  = cfgData.GO_PER_BLOCK;
+        document.getElementById('cfg-nogo-per-block').value = cfgData.NOGO_PER_BLOCK;
+        document.getElementById('cfg-trials-per-block').value =
+            cfgData.GO_PER_BLOCK + cfgData.NOGO_PER_BLOCK;
+
+        trialTypes = [...(cfgData.BLOCK_TRIAL_TYPES || [])];
+        renderTrialGrid();
+
+        document.getElementById('cfg-stim-delays').value =
+            (cfgData.BLOCK_STIM_DELAYS || []).join(', ');
+        document.getElementById('cfg-prompt-delays').value =
+            (cfgData.BLOCK_PROMPT_DELAYS || []).join(', ');
+
+        document.getElementById('practice-tbody').innerHTML = '';
+        (cfgData.PRACTICE_SEQUENCE || []).forEach(t => addPracticeRow(t));
+    } catch (e) {
+        console.error('Failed to load config:', e);
+    }
+}
+
+async function saveConfig() {
+    const numBlocks   = parseInt(document.getElementById('cfg-num-blocks').value);
+    const goPerBlock  = parseInt(document.getElementById('cfg-go-per-block').value);
+    const nogoPerBlock = parseInt(document.getElementById('cfg-nogo-per-block').value);
+    const trialsPerBlock = goPerBlock + nogoPerBlock;
+
+    const stimDelays   = parseArray(document.getElementById('cfg-stim-delays').value);
+    const promptDelays = parseArray(document.getElementById('cfg-prompt-delays').value);
+
+    // Validate
+    let valid = true;
+
+    const goCount   = trialTypes.filter(t => t === 'go').length;
+    const nogoCount = trialTypes.filter(t => t === 'nogo').length;
+    if (trialTypes.length !== trialsPerBlock || goCount !== goPerBlock || nogoCount !== nogoPerBlock) {
+        showError('trial-type-error',
+            `Trial sequence must have exactly ${trialsPerBlock} entries: ${goPerBlock} LIFT and ${nogoPerBlock} HOLD.`);
+        valid = false;
+    } else { showError('trial-type-error', ''); }
+
+    if (stimDelays.length !== trialsPerBlock) {
+        showError('stim-delay-error',
+            `Must have exactly ${trialsPerBlock} values (one per trial position). Found ${stimDelays.length}.`);
+        valid = false;
+    } else { showError('stim-delay-error', ''); }
+
+    if (promptDelays.length !== trialsPerBlock) {
+        showError('prompt-delay-error',
+            `Must have exactly ${trialsPerBlock} values (one per trial position). Found ${promptDelays.length}.`);
+        valid = false;
+    } else { showError('prompt-delay-error', ''); }
+
+    if (!valid) return;
+
+    const cfg = {
+        NUM_BLOCKS:       numBlocks,
+        GO_PER_BLOCK:     goPerBlock,
+        NOGO_PER_BLOCK:   nogoPerBlock,
+        BLOCK_TRIAL_TYPES: trialTypes,
+        BLOCK_STIM_DELAYS: stimDelays,
+        BLOCK_PROMPT_DELAYS: promptDelays,
+        BLOCK_X_FACTORS: cfgData ? cfgData.BLOCK_X_FACTORS : [],
+        BLOCK_Y_FACTORS: cfgData ? cfgData.BLOCK_Y_FACTORS : [],
+        PRACTICE_SEQUENCE: getPracticeSequence()
+    };
+
+    const statusEl = document.getElementById('config-status');
+    statusEl.className = 'save-status';
+    statusEl.textContent = 'Saving…';
+
+    try {
+        await api('POST', '/api/admin/config', cfg);
+        cfgData = cfg;
+        statusEl.className = 'save-status ok';
+        statusEl.textContent = 'Saved.';
+        setTimeout(() => { statusEl.textContent = ''; }, 3000);
+    } catch (e) {
+        statusEl.className = 'save-status err';
+        statusEl.textContent = e.message;
+    }
+}
+
+// ═══ RESULTS ════════════════════════════════════════════════
+
+let allParticipantData = [];
+let currentPid = null;
+let dashPhase  = 'both';
+
+async function loadParticipants() {
+    const tbody = document.getElementById('participant-tbody');
+    try {
+        const rows = await api('GET', '/api/admin/participants');
+        if (!rows.length) {
+            tbody.innerHTML = '<tr class="loading-row"><td colspan="7">No participants yet.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = rows.map(r => `
+            <tr onclick="loadParticipantDashboard(${r.pid})" data-pid="${r.pid}">
+                <td>${r.pid}</td>
+                <td>${r.session_date ? new Date(r.session_date).toLocaleDateString() : '—'}</td>
+                <td>${r.real_trial_count}</td>
+                <td>${r.trial_count}</td>
+                <td>${r.accuracy_pct != null ? r.accuracy_pct + '%' : '—'}</td>
+                <td>${r.mean_rt_release != null ? r.mean_rt_release + ' ms' : '—'}</td>
+                <td><button class="view-btn">View</button></td>
+            </tr>
+        `).join('');
+    } catch (e) {
+        tbody.innerHTML = `<tr class="loading-row"><td colspan="7">Error: ${e.message}</td></tr>`;
+    }
+}
+
+async function loadParticipantDashboard(pid) {
+    // Highlight selected row
+    document.querySelectorAll('#participant-tbody tr').forEach(tr => {
+        tr.classList.toggle('selected', parseInt(tr.dataset.pid) === pid);
+    });
+
+    currentPid = pid;
+    dashPhase  = 'both';
+    document.querySelectorAll('.phase-toggle button').forEach((b, i) => {
+        b.classList.toggle('active', i === 0);
+    });
+
+    const dash = document.getElementById('participant-dashboard');
+    dash.style.display = 'block';
+    document.getElementById('dash-pid-label').textContent = pid;
+
+    try {
+        allParticipantData = await api('GET', `/api/admin/participant/${pid}`);
+        renderDashboard();
+    } catch (e) {
+        console.error('Failed to load participant data:', e);
+    }
+}
+
+function setDashPhase(phase) {
+    dashPhase = phase;
+    const labels = ['both', 'practice', 'real'];
+    document.querySelectorAll('.phase-toggle button').forEach((b, i) => {
+        b.classList.toggle('active', labels[i] === phase);
+    });
+    renderDashboard();
+}
+
+function getFilteredData() {
+    if (dashPhase === 'both')     return allParticipantData;
+    if (dashPhase === 'practice') return allParticipantData.filter(d => d.phase === 'Practice');
+    return allParticipantData.filter(d => d.phase === 'Real Study');
+}
+
+function renderDashboard() {
+    const data = getFilteredData();
+    renderStats(data);
+    renderCharts(data);
+    renderDataTable(data);
+}
+
+// ── Stats ──
+function renderStats(data) {
+    const trials = data.filter(d => d.trialType !== 'pending');
+    const uniqueTrials = [...new Set(trials.map(d => `${d.phase}-${d.trialIndex}`))].length;
+
+    const correct = trials.filter(d => d.isCorrect).length;
+    const accuracy = trials.length ? (correct / trials.length) * 100 : null;
+
+    const goTrials   = trials.filter(d => d.trialType === 'go');
+    const nogoTrials = trials.filter(d => d.trialType === 'nogo');
+    const goAcc   = goTrials.length   ? goTrials.filter(d => d.isCorrect).length   / goTrials.length   * 100 : null;
+    const nogoAcc = nogoTrials.length ? nogoTrials.filter(d => d.isCorrect).length / nogoTrials.length * 100 : null;
+
+    const slips        = data.filter(d => d.resultType === 'Slip Recorded').length;
+    const earlyRelease = data.filter(d => d.errorCategory === 'Early Release').length;
+    const anticipatory = data.filter(d => d.errorCategory === 'Anticipatory Press').length;
+
+    const rtReleaseVals  = data.filter(d => d.trialType === 'go' && d.rtRelease  != null).map(d => d.rtRelease);
+    const rtDownVals     = data.filter(d => d.trialType === 'go' && d.rtDown     != null).map(d => d.rtDown);
+    const respTimeVals   = data.filter(d => d.responseTime  != null).map(d => d.responseTime);
+    const slipDurVals    = data.filter(d => d.slipDuration  != null).map(d => d.slipDuration);
+
+    const fmt = (arr, dec = 0) => arr.length ? mean(arr).toFixed(dec) + ' ms' : '—';
+
+    set('d-total',       uniqueTrials || '—');
+    set('d-accuracy',    accuracy  != null ? accuracy.toFixed(1)  + '%' : '—');
+    set('d-go-acc',      goAcc     != null ? goAcc.toFixed(1)     + '%' : '—');
+    set('d-nogo-acc',    nogoAcc   != null ? nogoAcc.toFixed(1)   + '%' : '—');
+    set('d-early',       earlyRelease);
+    set('d-anticipatory', anticipatory);
+    set('d-slips',       slips);
+    set('d-mean-rt',     fmt(rtReleaseVals));
+    set('d-median-rt',   rtReleaseVals.length ? median(rtReleaseVals).toFixed(0) + ' ms' : '—');
+    set('d-sd-rt',       rtReleaseVals.length ? stddev(rtReleaseVals).toFixed(1) + ' ms' : '—');
+    set('d-mean-rtdown', fmt(rtDownVals));
+    set('d-mean-resp',   fmt(respTimeVals));
+    set('d-mean-slip',   slipDurVals.length ? fmt(slipDurVals) : '—');
+}
+
+function set(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+}
+
+// ── Math helpers ──
+function mean(arr) { return arr.reduce((a, b) => a + b, 0) / arr.length; }
+function median(arr) {
+    const s = [...arr].sort((a, b) => a - b);
+    const m = Math.floor(s.length / 2);
+    return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
+function stddev(arr) {
+    const m = mean(arr);
+    return Math.sqrt(arr.reduce((a, b) => a + (b - m) ** 2, 0) / arr.length);
+}
+
+// ── Charts ──
+const PCFG = { displayModeBar: false, responsive: true };
+const PBASE = {
+    paper_bgcolor: 'transparent', plot_bgcolor: 'transparent',
+    font: { family: 'DM Sans, sans-serif', size: 11, color: '#6b6b66' },
+    margin: { t: 12, r: 16, b: 40, l: 52 },
+    xaxis: { gridcolor: '#e5e5e2', linecolor: '#d0d0cc', tickcolor: '#d0d0cc', zeroline: false },
+    yaxis: { gridcolor: '#e5e5e2', linecolor: '#d0d0cc', tickcolor: '#d0d0cc', zeroline: false },
+    legend: { bgcolor: 'transparent', borderwidth: 0 }
+};
+
+function layout(o = {}) {
+    return Object.assign({}, PBASE, o, {
+        xaxis: Object.assign({}, PBASE.xaxis, o.xaxis || {}),
+        yaxis: Object.assign({}, PBASE.yaxis, o.yaxis || {})
+    });
+}
+
+function empty(id) {
+    document.getElementById(id).innerHTML = '<div class="empty-state">Not enough data</div>';
+}
+
+function renderCharts(data) {
+    // RT-Release histogram
+    const rtVals = data.filter(d => d.trialType === 'go' && d.rtRelease != null).map(d => d.rtRelease);
+    if (rtVals.length >= 2) {
+        Plotly.newPlot('d-chart-rt-hist', [{
+            x: rtVals, type: 'histogram',
+            marker: { color: '#1a1a18', opacity: 0.75 }, xbins: { size: 50 }
+        }], layout({ height: 180, xaxis: { title: 'ms', rangemode: 'tozero' }, yaxis: { title: 'Count', rangemode: 'tozero' } }), PCFG);
+    } else { empty('d-chart-rt-hist'); }
+
+    // RT-Down histogram
+    const rtDownVals = data.filter(d => d.rtDown != null).map(d => d.rtDown);
+    if (rtDownVals.length >= 2) {
+        Plotly.newPlot('d-chart-rtdown-hist', [{
+            x: rtDownVals, type: 'histogram',
+            marker: { color: '#2563eb', opacity: 0.65 }, xbins: { size: 50 }
+        }], layout({ height: 180, xaxis: { title: 'ms', rangemode: 'tozero' }, yaxis: { title: 'Count', rangemode: 'tozero' } }), PCFG);
+    } else { empty('d-chart-rtdown-hist'); }
+
+    // RT over trials
+    const phaseColors = { 'Practice': '#9b9b96', 'Real Study': '#1a1a18' };
+    const phases = dashPhase === 'both' ? ['Practice', 'Real Study']
+        : dashPhase === 'practice' ? ['Practice'] : ['Real Study'];
+
+    const traces = phases.map(ph => {
+        const rows = data.filter(d => d.phase === ph && d.trialType === 'go' && d.rtRelease != null);
+        return {
+            x: rows.map(d => d.trialIndex), y: rows.map(d => d.rtRelease),
+            mode: 'lines+markers', name: ph,
+            line: { color: phaseColors[ph], width: 1.5 },
+            marker: { color: phaseColors[ph], size: 6 }
+        };
+    }).filter(t => t.x.length);
+
+    if (traces.length) {
+        Plotly.newPlot('d-chart-rt-trial', traces, layout({
+            height: 220,
+            xaxis: { title: 'Trial', rangemode: 'tozero' },
+            yaxis: { title: 'RT-Release (ms)', rangemode: 'tozero' }
+        }), PCFG);
+    } else { empty('d-chart-rt-trial'); }
+
+    // Phase box
+    const practiceRTs = allParticipantData.filter(d => d.phase === 'Practice' && d.rtRelease != null).map(d => d.rtRelease);
+    const realRTs     = allParticipantData.filter(d => d.phase === 'Real Study' && d.rtRelease != null).map(d => d.rtRelease);
+    const boxTraces   = [];
+    if (practiceRTs.length) boxTraces.push({ y: practiceRTs, type: 'box', name: 'Practice', marker: { color: '#9b9b96' }, line: { color: '#9b9b96' }, fillcolor: 'rgba(155,155,150,0.15)' });
+    if (realRTs.length)     boxTraces.push({ y: realRTs,     type: 'box', name: 'Real Study', marker: { color: '#1a1a18' }, line: { color: '#1a1a18' }, fillcolor: 'rgba(26,26,24,0.12)' });
+    if (boxTraces.length) {
+        Plotly.newPlot('d-chart-phase-box', boxTraces, layout({ height: 200, yaxis: { title: 'RT-Release (ms)', rangemode: 'tozero' } }), PCFG);
+    } else { empty('d-chart-phase-box'); }
+
+    // Accuracy by phase
+    const phaseLabels = ['Practice', 'Real Study'];
+    const accs = phaseLabels.map(ph => {
+        const pd = allParticipantData.filter(d => d.phase === ph && d.trialType !== 'pending');
+        return pd.length ? (pd.filter(d => d.isCorrect).length / pd.length) * 100 : 0;
+    });
+    Plotly.newPlot('d-chart-phase-acc', [{
+        x: phaseLabels, y: accs, type: 'bar',
+        marker: { color: ['#9b9b96', '#1a1a18'] }
+    }], layout({ height: 200, yaxis: { title: 'Accuracy (%)', range: [0, 105] } }), PCFG);
+}
+
+// ── Data table ──
+function renderDataTable(data) {
+    const tbody = document.getElementById('d-table-body');
+    tbody.innerHTML = data.map(d => {
+        const isSlip = d.resultType === 'Slip Recorded';
+        const isAntic = d.errorCategory === 'Anticipatory Press';
+        const typeTag = d.trialType === 'go'
+            ? '<span class="tag tag-go">LIFT</span>'
+            : d.trialType === 'nogo'
+                ? '<span class="tag tag-nogo">HOLD</span>'
+                : `<span class="tag">${d.trialType}</span>`;
+        const correctTag = isSlip ? '<span class="tag tag-slip">slip</span>'
+            : isAntic ? '<span class="tag tag-slip">anticipatory</span>'
+            : d.isCorrect ? '<span class="tag tag-yes">yes</span>'
+            : '<span class="tag tag-no">no</span>';
+        return `<tr>
+            <td>${d.phase}</td>
+            <td>${d.blockNumber != null ? d.blockNumber : '—'}</td>
+            <td>${d.trialIndex}</td>
+            <td>${d.trialInBlock != null ? d.trialInBlock : '—'}</td>
+            <td>${typeTag}</td>
+            <td>${correctTag}</td>
+            <td>${d.resultType || '—'}</td>
+            <td>${d.errorCategory && d.errorCategory !== 'None' ? d.errorCategory : '—'}</td>
+            <td>${d.rtRelease != null ? d.rtRelease : '—'}</td>
+            <td>${d.rtDown != null ? d.rtDown : '—'}</td>
+            <td>${d.responseTime != null ? d.responseTime : '—'}</td>
+            <td>${d.anticipatoryPressDelay != null ? d.anticipatoryPressDelay : '—'}</td>
+            <td>${d.slipDuration != null ? d.slipDuration : '—'}</td>
+            <td>${d.trialDelay != null ? d.trialDelay : '—'}</td>
+            <td>${d.goPromptDelay != null ? d.goPromptDelay : '—'}</td>
+            <td>${d.touchX != null ? d.touchX : '—'}</td>
+            <td>${d.touchY != null ? d.touchY : '—'}</td>
+            <td>${d.timestamp ? new Date(d.timestamp).toLocaleString() : '—'}</td>
+        </tr>`;
+    }).join('');
+}
+
+// ═══ CHANGE PASSWORD ════════════════════════════════════════
+
+async function changePassword() {
+    const cur     = document.getElementById('pw-current').value;
+    const nw      = document.getElementById('pw-new').value;
+    const confirm = document.getElementById('pw-confirm').value;
+    const status  = document.getElementById('pw-status');
+
+    status.className = 'save-status';
+    status.textContent = '';
+
+    if (nw !== confirm) {
+        status.className = 'save-status err';
+        status.textContent = 'New passwords do not match.';
+        return;
+    }
+
+    try {
+        await api('POST', '/api/admin/password', { currentPassword: cur, newPassword: nw });
+        status.className = 'save-status ok';
+        status.textContent = 'Password updated.';
+        document.getElementById('pw-current').value = '';
+        document.getElementById('pw-new').value     = '';
+        document.getElementById('pw-confirm').value = '';
+    } catch (e) {
+        status.className = 'save-status err';
+        status.textContent = e.message;
+    }
+}
+
+// ═══ BOOT ════════════════════════════════════════════════════
+init();
+</script>
+</body>
+</html>

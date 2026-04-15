@@ -12,10 +12,10 @@ const CONFIG = {
 //            BLOCK & TRIAL COUNT CONFIGURATION
 //   Change these three values to adjust the real session.
 // =========================================================
-const NUM_BLOCKS     = 2;   // Number of blocks in the real session
-const GO_PER_BLOCK   = 15;  // GO trials per block
-const NOGO_PER_BLOCK = 5;   // NO GO trials per block
-const TRIALS_PER_BLOCK = GO_PER_BLOCK + NOGO_PER_BLOCK; // derived — do not edit
+let NUM_BLOCKS     = 2;   // Number of blocks in the real session
+let GO_PER_BLOCK   = 15;  // GO trials per block
+let NOGO_PER_BLOCK = 5;   // NO GO trials per block
+let TRIALS_PER_BLOCK = GO_PER_BLOCK + NOGO_PER_BLOCK; // derived — do not edit
 
 
 // =========================================================
@@ -27,7 +27,7 @@ const TRIALS_PER_BLOCK = GO_PER_BLOCK + NOGO_PER_BLOCK; // derived — do not ed
 // =========================================================
 
 // Trial types: must contain GO_PER_BLOCK 'go' and NOGO_PER_BLOCK 'nogo' entries.
-const BLOCK_TRIAL_TYPES = [
+let BLOCK_TRIAL_TYPES = [
     'go',   'go',   'nogo', 'go',   'go',
     'go',   'nogo', 'go',   'go',   'go',
     'nogo', 'go',   'go',   'nogo', 'go',
@@ -35,7 +35,7 @@ const BLOCK_TRIAL_TYPES = [
 ];
 
 // Holding delay (ms) from button press to stimulus appearance — range 2 000–6 000 ms.
-const BLOCK_STIM_DELAYS = [
+let BLOCK_STIM_DELAYS = [
     2000, 3000, 2500, 1500, 3000,
     2000, 2500, 1500, 3000, 2000,
     2500, 1500, 3000, 2000, 2500,
@@ -44,7 +44,7 @@ const BLOCK_STIM_DELAYS = [
 
 // Delay (ms) from GO finger-lift to "Put your finger down" prompt — range 2 000–3 000 ms.
 // Only used for GO trials; ignored for NO GO trials.
-const BLOCK_PROMPT_DELAYS = [
+let BLOCK_PROMPT_DELAYS = [
     1000, 1500, 1000, 1000, 1000,
     1500, 1000, 1000, 1500, 1000,
     1000, 1500, 1000, 1000, 1500,
@@ -53,13 +53,13 @@ const BLOCK_PROMPT_DELAYS = [
 
 // Button position factors per trial position (–1 to 1).
 // Only used when CONFIG.circlePosition !== 'fixed'.
-const BLOCK_X_FACTORS = [
+let BLOCK_X_FACTORS = [
      0,    0.4, -0.4,  0.6, -0.6,
      0.2, -0.2,  0.8, -0.8,  0,
      0.3, -0.3,  0.5, -0.5,  0.7,
     -0.7,  0.1, -0.1,  0.4, -0.4
 ];
-const BLOCK_Y_FACTORS = [
+let BLOCK_Y_FACTORS = [
      0,    0.4, -0.4, -0.6,  0.6,
     -0.2,  0.2, -0.8,  0.8,  0,
     -0.3,  0.3, -0.5,  0.5, -0.7,
@@ -70,7 +70,7 @@ const BLOCK_Y_FACTORS = [
 // =========================================================
 //                 EDIT TRIAL SEQUENCES HERE
 // =========================================================
-const PRACTICE_SEQUENCE = [
+let PRACTICE_SEQUENCE = [
     { type: 'go',   delay: 3000, goPromptDelay: 2000, xFactor: 0,    yFactor: 0    },
     { type: 'go',   delay: 3000, goPromptDelay: 2500, xFactor: -0.5, yFactor: 0.5  },
     { type: 'nogo', delay: 3000, goPromptDelay: 2000, xFactor: 0.5,  yFactor: -0.5 },
@@ -94,6 +94,31 @@ function getRealSequence() {
         }
     }
     return _realSequence;
+}
+
+
+// ================= LOAD CONFIG FROM SERVER =================
+// Fetches task parameters from the DB (set via admin panel).
+// Falls back to the hardcoded defaults above if the server is unreachable.
+async function loadConfig() {
+    try {
+        const res = await fetch('/api/config');
+        if (!res.ok) return;
+        const cfg = await res.json();
+        NUM_BLOCKS      = cfg.NUM_BLOCKS      ?? NUM_BLOCKS;
+        GO_PER_BLOCK    = cfg.GO_PER_BLOCK    ?? GO_PER_BLOCK;
+        NOGO_PER_BLOCK  = cfg.NOGO_PER_BLOCK  ?? NOGO_PER_BLOCK;
+        TRIALS_PER_BLOCK = GO_PER_BLOCK + NOGO_PER_BLOCK;
+        BLOCK_TRIAL_TYPES   = cfg.BLOCK_TRIAL_TYPES   ?? BLOCK_TRIAL_TYPES;
+        BLOCK_STIM_DELAYS   = cfg.BLOCK_STIM_DELAYS   ?? BLOCK_STIM_DELAYS;
+        BLOCK_PROMPT_DELAYS = cfg.BLOCK_PROMPT_DELAYS ?? BLOCK_PROMPT_DELAYS;
+        BLOCK_X_FACTORS     = cfg.BLOCK_X_FACTORS     ?? BLOCK_X_FACTORS;
+        BLOCK_Y_FACTORS     = cfg.BLOCK_Y_FACTORS     ?? BLOCK_Y_FACTORS;
+        PRACTICE_SEQUENCE   = cfg.PRACTICE_SEQUENCE   ?? PRACTICE_SEQUENCE;
+        _realSequence = null; // clear cache so it rebuilds with new values
+    } catch (e) {
+        console.warn('Config fetch failed — using hardcoded defaults.', e);
+    }
 }
 
 
@@ -1352,4 +1377,4 @@ function setupButtonListeners() {
 }
 
 
-init();
+loadConfig().then(() => init());
