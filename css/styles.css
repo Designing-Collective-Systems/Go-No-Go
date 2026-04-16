@@ -44,3 +44,18 @@ p {
     margin-left: -50vw;
     width: 100vw;
 }
+
+
+
+#game-button,
+#tutorial-button {
+  transition: transform 0.1s ease-out, filter 0.1s ease-out, box-shadow 0.1s ease-out;
+}
+
+/* Pressed state — finger is down */
+#game-button.btn-pressed,
+#tutorial-button.btn-pressed {
+  transform: scale(0.93) !important;
+  filter: brightness(0.85);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2) !important;
+}

@@ -202,7 +202,8 @@ const STATE = {
     rtRelease: null,       // Time from LIFT onset to finger lift
     putDownPromptTime: null, // Timestamp when "HOLD" prompt appeared
     rtDown: null,          // Time from "HOLD" prompt to finger recontact
-    pid: null              // Assigned from DB at start of real session
+    pid: null,              // Assigned from DB at start of real session
+    isPressed: false,
 };
 
 
@@ -319,15 +320,18 @@ function setupTutorialTrial(step) {
     els.tutorialButton = newButton;
 
 
-    const start = (e) => {
+        const start = (e) => {
         if (e.type === 'mousedown' && e.button !== 0) return;
         if (e.type === 'touchstart') e.preventDefault();
+        STATE.isPressed = true;
+        updateTutorialButtonAppearance();
         handleTutorialPressStart(step);
     };
 
-
     const end = (e) => {
         if (e.type === 'touchend') e.preventDefault();
+        STATE.isPressed = false;
+        updateTutorialButtonAppearance();
         handleTutorialPressEnd(step);
     };
 
@@ -336,18 +340,27 @@ function setupTutorialTrial(step) {
     newButton.addEventListener('touchstart', start, { passive: false });
     newButton.addEventListener('mouseup', end);
     newButton.addEventListener('touchend', end, { passive: false });
-    newButton.addEventListener('mouseleave', () => { if (STATE.isHolding) end(); });
+    btn.addEventListener('touchcancel', (e) => {
+    STATE.isPressingButton = false;
+    handlePressEnd();
+    });
+    newButton.addEventListener('mouseleave', () => { STATE.isPressingButton = false; if (STATE.isHolding) end(); });
 }
 
 
 function handleTutorialPressStart(step) {
     if (STATE.tutorialTrialComplete) return;
 
+    if (STATE.trialState === 'go-delay') {
+        showTutorialRetry("Too early! Wait for the HOLD prompt to appear before pressing again.");
+        return;
+    }
 
     if (STATE.trialState === 'waiting') {
         STATE.isHolding = true;
         STATE.trialState = 'holding';
         updateTutorialUI();
+        updateTutorialButtonAppearance();
 
 
         stimulusTimeout = setTimeout(() => {
@@ -543,15 +556,7 @@ function updateTutorialButtonPosition(xFactor, yFactor) {
 function updateTutorialButtonAppearance() {
     const btn = els.tutorialButton;
     btn.className = `w-32 h-32 rounded-full bg-blue-500 shadow-2xl absolute cursor-pointer focus:outline-none touch-none`;
-
-
-    if (STATE.trialState === 'waiting') {
-        btn.classList.add('hover:scale-105', 'active:scale-95');
-    } else if (STATE.trialState === 'holding') {
-        btn.classList.add('scale-95');
-    } else if (STATE.trialState === 'stimulus' || STATE.trialState === 'released') {
-        btn.classList.add('scale-100');
-    }
+    if (STATE.isPressed) btn.classList.add('btn-pressed');
 }
 
 
@@ -1328,6 +1333,7 @@ function updateUI() {
 
 
     btn.className = `w-32 h-32 rounded-full bg-blue-500 shadow-2xl absolute cursor-pointer focus:outline-none touch-none`;
+    if (STATE.isPressed) btn.classList.add('btn-pressed'); 
     if (trialState === 'waiting') btn.classList.add('hover:scale-105', 'active:scale-95');
     else if (trialState === 'holding') btn.classList.add('scale-95');
     else if (trialState === 'stimulus' || trialState === 'released') btn.classList.add('scale-100');
@@ -1359,12 +1365,16 @@ function setupButtonListeners() {
 
 
         if (e.type === 'touchstart') e.preventDefault();
+        STATE.isPressed = true;  
+        updateUI();
         handlePressStart();
     };
 
 
     const end = (e) => {
         if (e.type === 'touchend') e.preventDefault();
+        STATE.isPressed = false;
+        updateUI();
         handlePressEnd();
     };
 
@@ -1373,7 +1383,11 @@ function setupButtonListeners() {
     btn.addEventListener('touchstart', start, { passive: false });
     btn.addEventListener('mouseup', end);
     btn.addEventListener('touchend', end, { passive: false });
-    btn.addEventListener('mouseleave', () => { if (STATE.isHolding) end(); });
+    btn.addEventListener('touchcancel', (e) => {
+    STATE.isPressingButton = false;
+    handlePressEnd();
+    });
+    btn.addEventListener('mouseleave', () => {  STATE.isPressingButton = false; if (STATE.isHolding) end(); });
 }
 
 
