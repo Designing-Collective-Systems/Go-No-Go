@@ -128,14 +128,16 @@ const INSTRUCTION_STEPS = [
         id: 'task-overview',
         type: 'text',
         title: 'How This Task Works',
-        message: 'You\'ll press and hold a blue circle on the screen. You\'ll need to lift your finger when you see <strong style="color: #10b981">"LIFT"</strong>  — then wait for a prompt before pressing again. You\'ll need to keep holding when you see <strong style="color: #ef4444">"HOLD"</strong>.',
+        // message: 'You\'ll press and hold a blue circle on the screen. You\'ll need to lift your finger when you see <strong style="color: #10b981">"LIFT"</strong>  — then wait for a prompt before pressing again. You\'ll need to keep holding when you see <strong style="color: #ef4444">"HOLD"</strong>.',
+        message: 'You\'ll press and hold a blue circle on the screen. You\'ll need to lift your finger when you see <strong>"LIFT"</strong>  — then wait for a prompt before pressing again. You\'ll need to keep holding when you see <strong>"HOLD"</strong>.',
         buttonText: 'Got it, let\'s start!'
     },
     {
         id: 'go-explanation',
         type: 'text',
         title: 'Learning LIFT Trials',
-        message: 'You\'ll see a blue circle on the screen. When the word <strong style="color: #10b981">"LIFT"</strong> appears above the circle, lift your finger quickly. Then wait — a prompt will appear saying "HOLD". Press the circle again as fast as you can only when you see that prompt.',
+        // message: 'You\'ll see a blue circle on the screen. When the word <strong style="color: #10b981">"LIFT"</strong> appears above the circle, lift your finger quickly. Then wait — a prompt will appear saying "HOLD". Press the circle again as fast as you can only when you see that prompt.',
+        message: 'You\'ll see a blue circle on the screen. When the word <strong>"LIFT"</strong> appears above the circle, lift your finger quickly. Then wait — a prompt will appear saying "HOLD". Press the circle again as fast as you can only when you see that prompt.',
         buttonText: 'Ready to try it!'
     },
     {
@@ -154,7 +156,8 @@ const INSTRUCTION_STEPS = [
         id: 'nogo-explanation',
         type: 'text',
         title: 'Learning HOLD Trials',
-        message: 'Great job! Now when you see <strong style="color: #ef4444">"HOLD"</strong> appear above the circle, keep holding the circle. Do NOT lift your finger.',
+        // message: 'Great job! Now when you see <strong style="color: #ef4444">"HOLD"</strong> appear above the circle, keep holding the circle. Do NOT lift your finger.',
+        message: 'Great job! Now when you see <strong>"HOLD"</strong> appear above the circle, keep holding the circle. Do NOT lift your finger.',
         buttonText: 'Ready to try it!'
     },
     {
@@ -173,7 +176,8 @@ const INSTRUCTION_STEPS = [
         id: 'complete',
         type: 'text',
         title: 'Tutorial Complete!',
-        message: 'Excellent work! You now understand both <strong style="color: #10b981">LIFT</strong> and <strong style="color: #ef4444">HOLD</strong> trials.<br>Ready to start practicing?',
+        // message: 'Excellent work! You now understand both <strong style="color: #10b981">LIFT</strong> and <strong style="color: #ef4444">HOLD</strong> trials.<br>Ready to start practicing?',
+        message: 'Excellent work! You now understand both <strong>LIFT</strong> and <strong>HOLD</strong> trials.<br>Ready to start practicing?',
         buttonText: 'Start Practice'
     }
 ];
@@ -462,14 +466,14 @@ function updateTutorialUI() {
     } else if (trialState === 'stimulus') {
         if (step.trialType === 'go') {
             text = 'LIFT';
-            color = '#10b981'; // GREEN
+            // color = '#10b981'; // GREEN
         } else {
             text = 'HOLD';
-            color = '#ef4444'; // RED
+            // color = '#ef4444'; // RED
         }
     } else if (trialState === 'released') {
         text = 'HOLD';
-        color = '#10b981'; // GREEN
+        // color = '#10b981'; // GREEN
     }
 
 
@@ -1303,17 +1307,17 @@ function updateUI() {
     } else if (trialState === 'stimulus') {
         if (currentTrialConfig.type === 'go') {
             text = 'LIFT';
-            color = '#10b981'; // GREEN
+            // color = '#10b981'; // GREEN
         } else {
             text = 'HOLD';
-            color = '#ef4444'; // RED
+            // color = '#ef4444'; // RED
         }
     } else if (trialState === 'go-delay') {
         text = '';
         color = '#000000';
     } else if (trialState === 'released') {
         text = 'HOLD';
-        color = '#10b981'; // GREEN
+        // color = '#10b981'; // GREEN
     } else if (trialState === 'feedback') {
         text = '';  // No feedback in practice/real sessions
     }
