@@ -5,6 +5,15 @@ const CONFIG = {
     circlePosition: 'fixed',
     showFeedback: true,
     showInstructionFeedback: true,
+    tutorialEnabled: true,
+    nogoHoldDuration: 5000,
+    pendingPromptText: 'Hold...',
+    skipOnLateRelease: false,
+    skipOnFailedInhibition: false,
+    showErrorLateRelease: true,
+    showErrorFailedInhibition: true,
+    multitouchEnabled: false,
+    multitouchMessage: 'Please use only one finger on the screen.',
 };
 
 
@@ -115,6 +124,19 @@ async function loadConfig() {
         BLOCK_X_FACTORS     = cfg.BLOCK_X_FACTORS     ?? BLOCK_X_FACTORS;
         BLOCK_Y_FACTORS     = cfg.BLOCK_Y_FACTORS     ?? BLOCK_Y_FACTORS;
         PRACTICE_SEQUENCE   = cfg.PRACTICE_SEQUENCE   ?? PRACTICE_SEQUENCE;
+        CONFIG.tutorialEnabled      = cfg.TUTORIAL_ENABLED ?? CONFIG.tutorialEnabled;
+        CONFIG.nogoHoldDuration     = cfg.NOGO_HOLD_DURATION ?? CONFIG.nogoHoldDuration;
+        CONFIG.pendingPromptText    = cfg.PENDING_PROMPT_TEXT ?? CONFIG.pendingPromptText;
+        CONFIG.skipOnLateRelease    = cfg.SKIP_ON_LATE_RELEASE ?? CONFIG.skipOnLateRelease;
+        CONFIG.skipOnFailedInhibition = cfg.SKIP_ON_FAILED_INHIBITION ?? CONFIG.skipOnFailedInhibition;
+        CONFIG.showErrorLateRelease = cfg.SHOW_ERROR_LATE_RELEASE ?? CONFIG.showErrorLateRelease;
+        CONFIG.showErrorFailedInhibition = cfg.SHOW_ERROR_FAILED_INHIBITION ?? CONFIG.showErrorFailedInhibition;
+        CONFIG.multitouchEnabled    = cfg.MULTITOUCH_ENABLED ?? CONFIG.multitouchEnabled;
+        CONFIG.multitouchMessage    = cfg.MULTITOUCH_MESSAGE ?? CONFIG.multitouchMessage;
+        if (cfg.INSTRUCTION_TEXTS) {
+            INSTRUCTION_TEXTS = Object.assign({}, INSTRUCTION_STEP_DEFAULTS, cfg.INSTRUCTION_TEXTS);
+        }
+        buildInstructionSteps();
         _realSequence = null; // clear cache so it rebuilds with new values
     } catch (e) {
         console.warn('Config fetch failed — using hardcoded defaults.', e);
@@ -123,64 +145,97 @@ async function loadConfig() {
 
 
 // ================= INTERACTIVE INSTRUCTION SEQUENCE =================
-const INSTRUCTION_STEPS = [
-    {
-        id: 'task-overview',
-        type: 'text',
+// Text content is configurable via admin. Call buildInstructionSteps() after loadConfig().
+const INSTRUCTION_STEP_DEFAULTS = {
+    overview: {
         title: 'How This Task Works',
-        // message: 'You\'ll press and hold a blue circle on the screen. You\'ll need to lift your finger when you see <strong style="color: #10b981">"LIFT"</strong>  — then wait for a prompt before pressing again. You\'ll need to keep holding when you see <strong style="color: #ef4444">"HOLD"</strong>.',
-        message: 'You\'ll press and hold a blue circle on the screen. You\'ll need to lift your finger when you see <strong>"LIFT"</strong>  — then wait for a prompt before pressing again. You\'ll need to keep holding when you see <strong>"HOLD"</strong>.',
+        message: 'You\'ll press and hold a blue circle on the screen. You\'ll need to lift your finger when you see <strong>"LIFT"</strong> — then wait for a prompt before pressing again. You\'ll need to keep holding when you see <strong>"HOLD"</strong>.',
         buttonText: 'Got it, let\'s start!'
     },
-    {
-        id: 'go-explanation',
-        type: 'text',
+    go: {
         title: 'Learning LIFT Trials',
-        // message: 'You\'ll see a blue circle on the screen. When the word <strong style="color: #10b981">"LIFT"</strong> appears above the circle, lift your finger quickly. Then wait — a prompt will appear saying "HOLD". Press the circle again as fast as you can only when you see that prompt.',
-        message: 'You\'ll see a blue circle on the screen. When the word <strong>"LIFT"</strong> appears above the circle, lift your finger quickly. Then wait — a prompt will appear saying "HOLD". Press the circle again as fast as you can only when you see that prompt.',
+        message: 'You\'ll see a blue circle on the screen. When the word <strong>"LIFT"</strong> appears above the circle, lift your finger off the button as quickly as possible. Then wait — a prompt will appear saying "HOLD". Press the circle again as fast as you can only when you see that prompt.',
         buttonText: 'Ready to try it!'
     },
-    {
-        id: 'go-release-1',
-        type: 'tutorial',
-        trialType: 'go',
-        delay: 4000
-    },
-    {
-        id: 'go-release-2',
-        type: 'tutorial',
-        trialType: 'go',
-        delay: 5000
-    },
-    {
-        id: 'nogo-explanation',
-        type: 'text',
+    noGo: {
         title: 'Learning HOLD Trials',
-        // message: 'Great job! Now when you see <strong style="color: #ef4444">"HOLD"</strong> appear above the circle, keep holding the circle. Do NOT lift your finger.',
         message: 'Great job! Now when you see <strong>"HOLD"</strong> appear above the circle, keep holding the circle. Do NOT lift your finger.',
         buttonText: 'Ready to try it!'
     },
-    {
-        id: 'nogo-1',
-        type: 'tutorial',
-        trialType: 'nogo',
-        delay: 4000
-    },
-    {
-        id: 'nogo-2',
-        type: 'tutorial',
-        trialType: 'nogo',
-        delay: 5000
-    },
-    {
-        id: 'complete',
-        type: 'text',
+    complete: {
         title: 'Tutorial Complete!',
-        // message: 'Excellent work! You now understand both <strong style="color: #10b981">LIFT</strong> and <strong style="color: #ef4444">HOLD</strong> trials.<br>Ready to start practicing?',
         message: 'Excellent work! You now understand both <strong>LIFT</strong> and <strong>HOLD</strong> trials.<br>Ready to start practicing?',
         buttonText: 'Start Practice'
+    },
+    static: {
+        title: 'How This Task Works',
+        body: '<p class="text-lg mb-4">You\'ll press and hold a blue circle on the screen.</p><p class="text-lg mb-4">When <strong>"LIFT"</strong> appears, lift your finger off the button as quickly as possible. Then wait for a prompt before pressing the circle again.</p><p class="text-lg mb-4">When <strong>"HOLD"</strong> appears, keep holding the circle. Do NOT lift your finger.</p><p class="text-lg mb-8">React as fast as you can while following the correct instruction.</p>',
+        buttonText: 'Got it!'
     }
-];
+};
+
+let INSTRUCTION_TEXTS = JSON.parse(JSON.stringify(INSTRUCTION_STEP_DEFAULTS));
+
+let INSTRUCTION_STEPS = [];
+buildInstructionSteps(); // populated immediately from defaults; rebuilt after loadConfig()
+
+function buildInstructionSteps() {
+    const t = INSTRUCTION_TEXTS;
+    INSTRUCTION_STEPS = [
+        {
+            id: 'task-overview',
+            type: 'text',
+            title: t.overview.title,
+            message: t.overview.message,
+            buttonText: t.overview.buttonText
+        },
+        {
+            id: 'go-explanation',
+            type: 'text',
+            title: t.go.title,
+            message: t.go.message,
+            buttonText: t.go.buttonText
+        },
+        {
+            id: 'go-release-1',
+            type: 'tutorial',
+            trialType: 'go',
+            delay: 4000
+        },
+        {
+            id: 'go-release-2',
+            type: 'tutorial',
+            trialType: 'go',
+            delay: 5000
+        },
+        {
+            id: 'nogo-explanation',
+            type: 'text',
+            title: t.noGo.title,
+            message: t.noGo.message,
+            buttonText: t.noGo.buttonText
+        },
+        {
+            id: 'nogo-1',
+            type: 'tutorial',
+            trialType: 'nogo',
+            delay: 4000
+        },
+        {
+            id: 'nogo-2',
+            type: 'tutorial',
+            trialType: 'nogo',
+            delay: 5000
+        },
+        {
+            id: 'complete',
+            type: 'text',
+            title: t.complete.title,
+            message: t.complete.message,
+            buttonText: t.complete.buttonText
+        }
+    ];
+}
 
 
 // ================= STATE MANAGEMENT =================
@@ -208,6 +263,7 @@ const STATE = {
     rtDown: null,          // Time from "HOLD" prompt to finger recontact
     pid: null,              // Assigned from DB at start of real session
     isPressed: false,
+    multitouchActive: false,
 };
 
 
@@ -243,15 +299,40 @@ const els = {
     tutorialStimulusText: document.getElementById('tutorial-stimulus-text'),
     tutorialButton: document.getElementById('tutorial-button'),
     tutorialContinueContainer: document.getElementById('tutorial-continue-container'),
-    tutorialContinueBtn: document.getElementById('tutorial-continue-btn')
+    tutorialContinueBtn: document.getElementById('tutorial-continue-btn'),
+    multitouchModal: document.getElementById('multitouch-modal'),
+    multitouchMessage: document.getElementById('multitouch-message')
 };
 
 
 // ================= INTERACTIVE INSTRUCTIONS =================
 function startInteractiveInstructions() {
+    if (!CONFIG.tutorialEnabled) {
+        // Show static instructions then go to practice
+        showStaticInstructions();
+        return;
+    }
     STATE.isInTutorial = true;
     STATE.tutorialStepIndex = 0;
     showInstructionStep();
+}
+
+function showStaticInstructions() {
+    STATE.isInTutorial = false;
+    els.menuOverlay.classList.remove('hidden');
+    els.tutorialUi.classList.add('hidden');
+    document.querySelectorAll('.phase-container').forEach(el => el.classList.remove('active'));
+    els.instructionContainer.classList.add('active');
+
+    const s = INSTRUCTION_TEXTS.static;
+    els.instructionContent.innerHTML = `
+        <h2 class="text-3xl font-bold mb-6">${s.title}</h2>
+        ${s.body}
+        <button onclick="showMenuPhase('practice-intro')"
+            class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-lg text-xl transition-colors shadow-lg">
+            ${s.buttonText}
+        </button>
+    `;
 }
 
 function skipTutorial() {
@@ -393,7 +474,7 @@ function handleTutorialPressStart(step) {
                     } else {
                         showTutorialRetry("You lifted your finger! Remember: HOLD means keep holding.");
                     }
-                }, 5000);
+                }, CONFIG.nogoHoldDuration);
             }
         }, step.delay);
     } else if (STATE.trialState === 'released' && step.trialType === 'go') {
@@ -461,7 +542,7 @@ function updateTutorialUI() {
         text = 'Press & Hold';
         color = '#000000'; // BLACK
     } else if (trialState === 'holding') {
-        text = 'Hold...';
+        text = CONFIG.pendingPromptText;
         color = '#000000'; // BLACK
     } else if (trialState === 'stimulus') {
         if (step.trialType === 'go') {
@@ -624,7 +705,10 @@ function logMetric(data) {
     console.groupEnd();
 
     // Only log real-session trials. Practice trials have no PID.
-    if (!STATE.isPractice && STATE.pid != null) {
+    // if (!STATE.isPractice && STATE.pid != null) {
+    //     saveTrialToDB(record).catch(err => console.error('Trial save failed:', err));
+    // }
+    if (STATE.pid != null) {
         saveTrialToDB(record).catch(err => console.error('Trial save failed:', err));
     }
 }
@@ -778,6 +862,7 @@ function showDashboard() {
 function init() {
     showMenuPhase('welcome');
     setupButtonListeners();
+    setupMultitouchDetection();
     console.log("App Initialized.");
     console.log("Configuration:", CONFIG);
 }
@@ -804,6 +889,17 @@ function startPhase(phaseName) {
     STATE.currentTrialIndex = 0;
     STATE.sessionStartTime = new Date().toISOString();
 
+    // Fetch PID immediately if we don't have one yet, regardless of phase.
+    if (STATE.pid == null) {
+        fetch('/api/next-pid')
+            .then(r => r.json())
+            .then(({ pid }) => {
+                STATE.pid = pid;
+                console.log(`Session started — assigned pid=${pid}`);
+            })
+            .catch(err => console.error('Failed to fetch PID:', err));
+    }
+
     if (phaseName === 'practice') {
         STATE.phase = 'practice';
         STATE.isPractice = true;
@@ -812,14 +908,6 @@ function startPhase(phaseName) {
     } else {
         STATE.phase = 'real';
         STATE.isPractice = false;
-        // Fetch and store PID before the first trial fires.
-        fetch('/api/next-pid')
-            .then(r => r.json())
-            .then(({ pid }) => {
-                STATE.pid = pid;
-                console.log(`Real session started — pid=${pid}`);
-            })
-            .catch(err => console.error('Failed to fetch PID:', err));
         els.menuOverlay.classList.add('hidden');
         els.taskUi.classList.remove('hidden');
     }
@@ -923,6 +1011,29 @@ function showRetryModal(msg) {
     clearAllTimeouts();
     els.retryMessage.innerText = msg;
     els.retryModal.classList.remove('hidden');
+    // Reset OK button to retry current trial
+    els.retryModal.querySelector('button').onclick = function() { retryCurrentTrial(); };
+}
+
+
+// Shows error message then advances to next trial (does not retry)
+function showSkipErrorModal(msg) {
+    clearAllTimeouts();
+    els.retryMessage.innerText = msg;
+    els.retryModal.classList.remove('hidden');
+    // Override the OK button to advance instead of retry
+    els.retryModal.querySelector('button').onclick = function() {
+        els.retryModal.classList.add('hidden');
+        STATE.isHolding = false;
+        STATE.currentTrialConfig = null;
+        STATE.currentRT = null;
+        STATE.noGoSlipStartTime = null;
+        STATE.rtRelease = null;
+        STATE.putDownPromptTime = null;
+        STATE.rtDown = null;
+        setTrialState('feedback');
+        advanceTrial();
+    };
 }
 
 
@@ -960,6 +1071,8 @@ function retryTaskTrial() {
 
 // ================= TASK LOGIC =================
 function handlePressStart() {
+    if (CONFIG.multitouchEnabled && STATE.multitouchActive) return;
+
     if (STATE.trialState === 'feedback') {
         STATE.isHolding = true; // track so auto-start can fire after the feedback pause
         return;
@@ -1094,7 +1207,16 @@ function runStimulusLogic() {
                 errorCategory: 'Late Release',
                 rt: null
             });
-            showRetryModal("Too slow! Please lift your finger when you see LIFT.");
+            if (CONFIG.skipOnLateRelease) {
+                if (CONFIG.showErrorLateRelease) {
+                    showSkipErrorModal("Too slow! Please lift your finger when you see LIFT.");
+                } else {
+                    setTrialState('feedback');
+                    advanceTrial();
+                }
+            } else {
+                showRetryModal("Too slow! Please lift your finger when you see LIFT.");
+            }
         }, 2500);
     } else {
         noGoTimeout = setTimeout(() => {
@@ -1103,7 +1225,7 @@ function runStimulusLogic() {
             } else {
                 evaluateNoGoTrial(false);
             }
-        }, 5000);
+        }, CONFIG.nogoHoldDuration);
     }
 }
 
@@ -1146,7 +1268,16 @@ function evaluateNoGoTrial(finalSuccess) {
             errorCategory: 'Failed Inhibition',
             rt: STATE.noGoSlipStartTime ? (STATE.noGoSlipStartTime - STATE.stimulusOnsetTime) : null
         });
-        showRetryModal("You lifted your finger! Remember: HOLD means keep holding. Let's try again!");
+        if (CONFIG.skipOnFailedInhibition) {
+            if (CONFIG.showErrorFailedInhibition) {
+                showSkipErrorModal("You lifted your finger! Remember: HOLD means keep holding.");
+            } else {
+                setTrialState('feedback');
+                advanceTrial();
+            }
+        } else {
+            showRetryModal("You lifted your finger! Remember: HOLD means keep holding. Let's try again!");
+        }
     }
 }
 
@@ -1302,7 +1433,7 @@ function updateUI() {
         text = 'Press & Hold';
         color = '#000000'; // BLACK
     } else if (trialState === 'holding') {
-        text = 'Hold...';
+        text = CONFIG.pendingPromptText;
         color = '#000000'; // BLACK
     } else if (trialState === 'stimulus') {
         if (currentTrialConfig.type === 'go') {
@@ -1392,6 +1523,47 @@ function setupButtonListeners() {
     handlePressEnd();
     });
     btn.addEventListener('mouseleave', () => {  STATE.isPressingButton = false; if (STATE.isHolding) end(); });
+}
+
+
+// ================= MULTI-TOUCH DETECTION =================
+function setupMultitouchDetection() {
+    document.addEventListener('touchstart', (e) => {
+        if (!CONFIG.multitouchEnabled) return;
+        if (e.touches.length > 1) {
+            STATE.multitouchActive = true;
+            showMultitouchWarning();
+        }
+    }, { passive: true });
+
+    document.addEventListener('touchend', (e) => {
+        if (!CONFIG.multitouchEnabled) return;
+        if (STATE.multitouchActive && e.touches.length <= 1) {
+            STATE.multitouchActive = false;
+            hideMultitouchWarning();
+        }
+    }, { passive: true });
+
+    document.addEventListener('touchcancel', (e) => {
+        if (!CONFIG.multitouchEnabled) return;
+        if (STATE.multitouchActive && e.touches.length <= 1) {
+            STATE.multitouchActive = false;
+            hideMultitouchWarning();
+        }
+    }, { passive: true });
+}
+
+function showMultitouchWarning() {
+    if (els.multitouchModal) {
+        els.multitouchMessage.innerText = CONFIG.multitouchMessage;
+        els.multitouchModal.classList.remove('hidden');
+    }
+}
+
+function hideMultitouchWarning() {
+    if (els.multitouchModal) {
+        els.multitouchModal.classList.add('hidden');
+    }
 }
 
 

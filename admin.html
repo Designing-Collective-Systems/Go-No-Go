@@ -35,92 +35,8 @@
             line-height: 1.5;
         }
 
-        /* ── Auth Screen ── */
-        #auth-screen {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-        }
-
-        .auth-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 40px;
-            width: 100%;
-            max-width: 380px;
-        }
-
-        .auth-card h1 {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 6px;
-        }
-
-        .auth-card p {
-            font-size: 13px;
-            color: var(--text-secondary);
-            margin-bottom: 28px;
-        }
-
-        .field { margin-bottom: 16px; }
-
-        .field label {
-            display: block;
-            font-size: 12px;
-            font-weight: 600;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-            color: var(--text-muted);
-            margin-bottom: 6px;
-        }
-
-        .field input {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid var(--border-strong);
-            border-radius: 6px;
-            font-family: 'DM Sans', sans-serif;
-            font-size: 14px;
-            color: var(--text);
-            background: var(--bg);
-            outline: none;
-            transition: border-color 0.12s;
-        }
-
-        .field input:focus { border-color: var(--accent); background: var(--surface); }
-
-        .btn-primary {
-            width: 100%;
-            padding: 11px;
-            background: var(--accent);
-            color: #fff;
-            border: none;
-            border-radius: 6px;
-            font-family: 'DM Sans', sans-serif;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: opacity 0.12s;
-            margin-top: 4px;
-        }
-
-        .btn-primary:hover { opacity: 0.85; }
-        .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
-
-        .auth-error {
-            margin-top: 14px;
-            padding: 10px 12px;
-            background: #fee2e2;
-            color: var(--nogo);
-            border-radius: 6px;
-            font-size: 13px;
-            display: none;
-        }
-
         /* ── Admin Panel ── */
-        #admin-panel { display: none; min-height: 100vh; }
+        #admin-panel { min-height: 100vh; }
 
         .admin-header {
             background: var(--surface);
@@ -652,52 +568,142 @@
         .loading-row td { text-align: center; color: var(--text-muted); padding: 32px !important; font-family: 'DM Sans', sans-serif !important; }
 
         .plotly .modebar { display: none !important; }
+
+        /* ── Toggle Switch ── */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .toggle-row:last-child { border-bottom: none; }
+        .toggle-label { font-size: 13px; font-weight: 500; color: var(--text); }
+        .toggle-hint { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+        .toggle-switch {
+            position: relative;
+            width: 40px;
+            height: 22px;
+            flex-shrink: 0;
+            margin-left: 16px;
+        }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background: var(--border-strong);
+            border-radius: 22px;
+            transition: background 0.15s;
+        }
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.15s;
+        }
+        .toggle-switch input:checked + .toggle-slider { background: var(--accent); }
+        .toggle-switch input:checked + .toggle-slider::before { transform: translateX(18px); }
+
+        .sub-toggle { padding-left: 24px; }
+
+        /* ── Instruction editor ── */
+        .instr-block {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 18px 20px;
+            margin-bottom: 12px;
+        }
+        .instr-block-title {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-bottom: 14px;
+        }
+        .instr-field { margin-bottom: 12px; }
+        .instr-field label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+        }
+        .instr-field input[type="text"],
+        .instr-field textarea {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid var(--border-strong);
+            border-radius: 6px;
+            font-family: var(--mono);
+            font-size: 12px;
+            color: var(--text);
+            background: var(--bg);
+            outline: none;
+            transition: border-color 0.12s;
+            line-height: 1.6;
+            resize: vertical;
+        }
+        .instr-field input[type="text"]:focus,
+        .instr-field textarea:focus { border-color: var(--accent); background: var(--surface); }
+        .instr-field .hint {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+        .instr-preview {
+            margin-top: 8px;
+            padding: 10px 14px;
+            border: 1px dashed var(--border-strong);
+            border-radius: 6px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            background: var(--bg);
+            min-height: 32px;
+        }
+        .instr-preview-label {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        /* ── Download buttons ── */
+        .btn-download {
+            padding: 7px 16px;
+            border: 1px solid var(--border-strong);
+            border-radius: 6px;
+            background: none;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: border-color 0.12s, color 0.12s;
+        }
+        .btn-download:hover { border-color: var(--accent); color: var(--accent); }
     </style>
 </head>
 <body>
 
-<!-- ═══ AUTH SCREEN ════════════════════════════════════════ -->
-<div id="auth-screen">
-    <div class="auth-card">
-        <h1 id="auth-title">HALT Admin</h1>
-        <p id="auth-subtitle">Enter your password to continue.</p>
-
-        <!-- Login form -->
-        <div id="login-form">
-            <div class="field">
-                <label>Password</label>
-                <input type="password" id="login-password" placeholder="Admin password" autocomplete="current-password">
-            </div>
-            <button class="btn-primary" id="login-btn" onclick="doLogin()">Sign in</button>
-            <div class="auth-error" id="login-error"></div>
-        </div>
-
-        <!-- First-time setup form -->
-        <div id="setup-form" style="display:none">
-            <div class="field">
-                <label>New Password</label>
-                <input type="password" id="setup-password" placeholder="At least 8 characters">
-            </div>
-            <div class="field">
-                <label>Confirm Password</label>
-                <input type="password" id="setup-confirm" placeholder="Repeat password">
-            </div>
-            <button class="btn-primary" id="setup-btn" onclick="doSetup()">Create Admin Account</button>
-            <div class="auth-error" id="setup-error"></div>
-        </div>
-    </div>
-</div>
-
 <!-- ═══ ADMIN PANEL ════════════════════════════════════════ -->
-<div id="admin-panel">
+<div id="admin-panel" style="min-height: 100vh;">
     <header class="admin-header">
         <div class="admin-logo">HALT <span>/ Admin</span></div>
         <nav class="tab-nav">
             <button class="tab-btn active" onclick="showTab('config')">Config</button>
             <button class="tab-btn" onclick="showTab('results')">Results</button>
-            <button class="tab-btn" onclick="showTab('password')">Password</button>
         </nav>
-        <button class="logout-btn" onclick="doLogout()">Log out</button>
     </header>
 
     <!-- ── Config Tab ── -->
@@ -728,6 +734,89 @@
             </div>
 
             <div class="section">
+                <div class="section-label">Task Behavior</div>
+
+                <div class="toggle-row">
+                    <div>
+                        <div class="toggle-label">Tutorial</div>
+                        <div class="toggle-hint">Interactive tutorial before practice trials</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="cfg-tutorial-enabled" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="form-grid" style="margin-top:14px; margin-bottom:14px;">
+                    <div class="form-field">
+                        <label>HOLD Prompt Duration (ms)</label>
+                        <input type="number" id="cfg-nogo-hold-duration" min="1000" max="30000" value="5000">
+                        <div class="hint">How long participant must hold during HOLD trials</div>
+                    </div>
+                    <div class="form-field">
+                        <label>Pending Prompt Text</label>
+                        <input type="text" id="cfg-pending-prompt-text" value="Hold...">
+                        <div class="hint">Text shown while waiting for stimulus</div>
+                    </div>
+                </div>
+
+                <div class="toggle-row">
+                    <div>
+                        <div class="toggle-label">Skip on Late Release</div>
+                        <div class="toggle-hint">Advance to next trial on late release errors (go trials)</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="cfg-skip-late-release">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="toggle-row sub-toggle" id="row-show-error-late-release">
+                    <div>
+                        <div class="toggle-label">Show error message (Late Release)</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="cfg-show-error-late-release" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="toggle-row">
+                    <div>
+                        <div class="toggle-label">Skip on Failed Inhibition</div>
+                        <div class="toggle-hint">Advance to next trial on failed inhibition errors (hold trials)</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="cfg-skip-failed-inhibition">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="toggle-row sub-toggle" id="row-show-error-failed-inhibition">
+                    <div>
+                        <div class="toggle-label">Show error message (Failed Inhibition)</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="cfg-show-error-failed-inhibition" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="toggle-row">
+                    <div>
+                        <div class="toggle-label">Multi-Touch Detection</div>
+                        <div class="toggle-hint">Warn participant and block trial when multiple fingers touch the screen</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="cfg-multitouch-enabled">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="form-field sub-toggle" id="row-multitouch-message" style="padding:12px 0 12px 24px;">
+                    <label>Multi-Touch Message</label>
+                    <input type="text" id="cfg-multitouch-message" value="Please use only one finger on the screen.">
+                </div>
+            </div>
+
+            <div class="section">
                 <div class="section-label">Trial Sequence (one entry per trial position)</div>
                 <div class="trial-grid-label">Click a cell to toggle between LIFT and HOLD.</div>
                 <div id="trial-type-grid" class="trial-grid"></div>
@@ -747,6 +836,72 @@
                 <textarea class="array-input" id="cfg-prompt-delays" rows="3"
                     placeholder="e.g. 1000, 1500, 1000, 1000 ..."></textarea>
                 <div class="validation-error" id="prompt-delay-error"></div>
+            </div>
+
+            <div class="section">
+                <div class="section-label">Instructions</div>
+
+                <div class="instr-block">
+                    <div class="instr-block-title">Slide 1 — Overview</div>
+                    <div class="hint" style="margin-bottom:12px;">Shown as first text slide in Tutorial mode and in Static mode.</div>
+                    <div class="instr-field"><label>Title</label><input type="text" id="instr-overview-title"></div>
+                    <div class="instr-field">
+                        <label>Message <span style="font-weight:400;text-transform:none;letter-spacing:0;">(HTML allowed — <code>&lt;strong&gt;</code>, <code>&lt;em&gt;</code>, <code>&lt;br&gt;</code>, etc.)</span></label>
+                        <textarea id="instr-overview-message" rows="3" oninput="updatePreview('overview-message','preview-overview-message')"></textarea>
+                        <div class="instr-preview-label" style="margin-top:8px;">Preview</div>
+                        <div class="instr-preview" id="preview-overview-message"></div>
+                    </div>
+                    <div class="instr-field"><label>Button Text</label><input type="text" id="instr-overview-btn"></div>
+                </div>
+
+                <div class="instr-block">
+                    <div class="instr-block-title">Slide 2 — LIFT Explanation (Tutorial only)</div>
+                    <div class="instr-field"><label>Title</label><input type="text" id="instr-go-title"></div>
+                    <div class="instr-field">
+                        <label>Message (HTML allowed)</label>
+                        <textarea id="instr-go-message" rows="3" oninput="updatePreview('go-message','preview-go-message')"></textarea>
+                        <div class="instr-preview-label" style="margin-top:8px;">Preview</div>
+                        <div class="instr-preview" id="preview-go-message"></div>
+                    </div>
+                    <div class="instr-field"><label>Button Text</label><input type="text" id="instr-go-btn"></div>
+                </div>
+
+                <div class="instr-block">
+                    <div class="instr-block-title">Slide 3 — HOLD Explanation (Tutorial only)</div>
+                    <div class="instr-field"><label>Title</label><input type="text" id="instr-nogo-title"></div>
+                    <div class="instr-field">
+                        <label>Message (HTML allowed)</label>
+                        <textarea id="instr-nogo-message" rows="3" oninput="updatePreview('nogo-message','preview-nogo-message')"></textarea>
+                        <div class="instr-preview-label" style="margin-top:8px;">Preview</div>
+                        <div class="instr-preview" id="preview-nogo-message"></div>
+                    </div>
+                    <div class="instr-field"><label>Button Text</label><input type="text" id="instr-nogo-btn"></div>
+                </div>
+
+                <div class="instr-block">
+                    <div class="instr-block-title">Slide 4 — Tutorial Complete (Tutorial only)</div>
+                    <div class="instr-field"><label>Title</label><input type="text" id="instr-complete-title"></div>
+                    <div class="instr-field">
+                        <label>Message (HTML allowed)</label>
+                        <textarea id="instr-complete-message" rows="3" oninput="updatePreview('complete-message','preview-complete-message')"></textarea>
+                        <div class="instr-preview-label" style="margin-top:8px;">Preview</div>
+                        <div class="instr-preview" id="preview-complete-message"></div>
+                    </div>
+                    <div class="instr-field"><label>Button Text</label><input type="text" id="instr-complete-btn"></div>
+                </div>
+
+                <div class="instr-block">
+                    <div class="instr-block-title">Static Instructions Body (when Tutorial is disabled)</div>
+                    <div class="hint" style="margin-bottom:12px;">Replaces slides 2–4 when Tutorial is off. Write full HTML — use <code>&lt;p class="text-lg mb-4"&gt;</code> for paragraphs.</div>
+                    <div class="instr-field"><label>Title</label><input type="text" id="instr-static-title"></div>
+                    <div class="instr-field">
+                        <label>Body HTML</label>
+                        <textarea id="instr-static-body" rows="6" oninput="updatePreview('static-body','preview-static-body')"></textarea>
+                        <div class="instr-preview-label" style="margin-top:8px;">Preview</div>
+                        <div class="instr-preview" id="preview-static-body"></div>
+                    </div>
+                    <div class="instr-field"><label>Button Text</label><input type="text" id="instr-static-btn"></div>
+                </div>
             </div>
 
             <div class="section">
@@ -779,6 +934,14 @@
     <!-- ── Results Tab ── -->
     <div id="tab-results" class="tab-content">
         <div class="results-body">
+
+            <div class="section">
+                <div class="section-label">Export Data</div>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                    <button class="btn-download" onclick="downloadAllCSV()">Download All Participants (CSV)</button>
+                    <button class="btn-download" id="btn-download-pid" style="display:none" onclick="downloadPidCSV()">Download Selected Participant (CSV)</button>
+                </div>
+            </div>
 
             <div class="section">
                 <div class="section-label">Participants</div>
@@ -891,44 +1054,13 @@
         </div>
     </div>
 
-    <!-- ── Password Tab ── -->
-    <div id="tab-password" class="tab-content">
-        <div class="tab-body" style="max-width:420px;">
-            <div class="section">
-                <div class="section-label">Change Password</div>
-                <div class="form-field" style="margin-bottom:14px;">
-                    <label>Current Password</label>
-                    <input type="password" id="pw-current" autocomplete="current-password">
-                </div>
-                <div class="form-field" style="margin-bottom:14px;">
-                    <label>New Password</label>
-                    <input type="password" id="pw-new" autocomplete="new-password">
-                    <div class="hint">Minimum 8 characters</div>
-                </div>
-                <div class="form-field" style="margin-bottom:20px;">
-                    <label>Confirm New Password</label>
-                    <input type="password" id="pw-confirm" autocomplete="new-password">
-                </div>
-                <div class="action-row">
-                    <button class="btn-save" onclick="changePassword()">Update Password</button>
-                    <span class="save-status" id="pw-status"></span>
-                </div>
-            </div>
-        </div>
-    </div>
 
 </div>
 
 <script>
-// ═══ AUTH ═══════════════════════════════════════════════════
-
-let TOKEN = sessionStorage.getItem('halt_admin_token') || null;
-
+// ═══ API HELPER ═════════════════════════════════════════════
 async function api(method, path, body) {
-    const opts = {
-        method,
-        headers: { 'Content-Type': 'application/json', 'X-Admin-Token': TOKEN || '' }
-    };
+    const opts = { method, headers: { 'Content-Type': 'application/json' } };
     if (body) opts.body = JSON.stringify(body);
     const res = await fetch(path, opts);
     const data = await res.json();
@@ -936,103 +1068,11 @@ async function api(method, path, body) {
     return data;
 }
 
-async function init() {
-    const { hasPassword } = await fetch('/api/admin/has-password').then(r => r.json());
-
-    if (!hasPassword) {
-        document.getElementById('auth-title').textContent = 'Create Admin Account';
-        document.getElementById('auth-subtitle').textContent = 'No admin account exists yet. Set a password to continue.';
-        document.getElementById('login-form').style.display = 'none';
-        document.getElementById('setup-form').style.display = 'block';
-        return;
-    }
-
-    if (TOKEN) {
-        const { valid } = await fetch('/api/admin/check', {
-            headers: { 'X-Admin-Token': TOKEN }
-        }).then(r => r.json());
-        if (valid) { showAdmin(); return; }
-        TOKEN = null;
-        sessionStorage.removeItem('halt_admin_token');
-    }
-}
-
-async function doLogin() {
-    const password = document.getElementById('login-password').value;
-    const errEl = document.getElementById('login-error');
-    const btn = document.getElementById('login-btn');
-    errEl.style.display = 'none';
-    btn.disabled = true;
-    btn.textContent = 'Signing in…';
-    try {
-        const { token } = await api('POST', '/api/admin/login', { password });
-        TOKEN = token;
-        sessionStorage.setItem('halt_admin_token', token);
-        showAdmin();
-    } catch (e) {
-        errEl.textContent = e.message;
-        errEl.style.display = 'block';
-    } finally {
-        btn.disabled = false;
-        btn.textContent = 'Sign in';
-    }
-}
-
-async function doSetup() {
-    const password = document.getElementById('setup-password').value;
-    const confirm  = document.getElementById('setup-confirm').value;
-    const errEl    = document.getElementById('setup-error');
-    const btn      = document.getElementById('setup-btn');
-    errEl.style.display = 'none';
-
-    if (password !== confirm) {
-        errEl.textContent = 'Passwords do not match.';
-        errEl.style.display = 'block';
-        return;
-    }
-
-    btn.disabled = true;
-    btn.textContent = 'Creating…';
-    try {
-        await api('POST', '/api/admin/setup', { password });
-        // Immediately log in with the new password
-        const { token } = await api('POST', '/api/admin/login', { password });
-        TOKEN = token;
-        sessionStorage.setItem('halt_admin_token', token);
-        showAdmin();
-    } catch (e) {
-        errEl.textContent = e.message;
-        errEl.style.display = 'block';
-    } finally {
-        btn.disabled = false;
-        btn.textContent = 'Create Admin Account';
-    }
-}
-
-async function doLogout() {
-    try { await api('POST', '/api/admin/logout'); } catch (_) {}
-    TOKEN = null;
-    sessionStorage.removeItem('halt_admin_token');
-    location.reload();
-}
-
-function showAdmin() {
-    document.getElementById('auth-screen').style.display = 'none';
-    document.getElementById('admin-panel').style.display = 'block';
-    loadConfigForm();
-    loadParticipants();
-}
-
-// Enter key support on auth inputs
-document.getElementById('login-password').addEventListener('keydown', e => {
-    if (e.key === 'Enter') doLogin();
-});
-
 // ═══ TAB NAV ════════════════════════════════════════════════
 
 function showTab(name) {
     document.querySelectorAll('.tab-btn').forEach((b, i) => {
-        b.classList.toggle('active', ['config','results','password'][i] === name);
+        b.classList.toggle('active', ['config','results'][i] === name);
     });
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
     document.getElementById('tab-' + name).classList.add('active');
@@ -1161,6 +1201,20 @@ async function loadConfigForm() {
 
         document.getElementById('practice-tbody').innerHTML = '';
         (cfgData.PRACTICE_SEQUENCE || []).forEach(t => addPracticeRow(t));
+
+        // Task behavior fields
+        document.getElementById('cfg-tutorial-enabled').checked = cfgData.TUTORIAL_ENABLED !== false;
+        document.getElementById('cfg-nogo-hold-duration').value = cfgData.NOGO_HOLD_DURATION || 5000;
+        document.getElementById('cfg-pending-prompt-text').value = cfgData.PENDING_PROMPT_TEXT || 'Hold...';
+        document.getElementById('cfg-skip-late-release').checked = !!cfgData.SKIP_ON_LATE_RELEASE;
+        document.getElementById('cfg-show-error-late-release').checked = cfgData.SHOW_ERROR_LATE_RELEASE !== false;
+        document.getElementById('cfg-skip-failed-inhibition').checked = !!cfgData.SKIP_ON_FAILED_INHIBITION;
+        document.getElementById('cfg-show-error-failed-inhibition').checked = cfgData.SHOW_ERROR_FAILED_INHIBITION !== false;
+        document.getElementById('cfg-multitouch-enabled').checked = !!cfgData.MULTITOUCH_ENABLED;
+        document.getElementById('cfg-multitouch-message').value = cfgData.MULTITOUCH_MESSAGE || 'Please use only one finger on the screen.';
+        updateSubToggleVisibility();
+
+        loadInstructionFields(cfgData.INSTRUCTION_TEXTS || {});
     } catch (e) {
         console.error('Failed to load config:', e);
     }
@@ -1209,7 +1263,17 @@ async function saveConfig() {
         BLOCK_PROMPT_DELAYS: promptDelays,
         BLOCK_X_FACTORS: cfgData ? cfgData.BLOCK_X_FACTORS : [],
         BLOCK_Y_FACTORS: cfgData ? cfgData.BLOCK_Y_FACTORS : [],
-        PRACTICE_SEQUENCE: getPracticeSequence()
+        PRACTICE_SEQUENCE: getPracticeSequence(),
+        TUTORIAL_ENABLED: document.getElementById('cfg-tutorial-enabled').checked,
+        NOGO_HOLD_DURATION: parseInt(document.getElementById('cfg-nogo-hold-duration').value) || 5000,
+        PENDING_PROMPT_TEXT: document.getElementById('cfg-pending-prompt-text').value || 'Hold...',
+        SKIP_ON_LATE_RELEASE: document.getElementById('cfg-skip-late-release').checked,
+        SHOW_ERROR_LATE_RELEASE: document.getElementById('cfg-show-error-late-release').checked,
+        SKIP_ON_FAILED_INHIBITION: document.getElementById('cfg-skip-failed-inhibition').checked,
+        SHOW_ERROR_FAILED_INHIBITION: document.getElementById('cfg-show-error-failed-inhibition').checked,
+        MULTITOUCH_ENABLED: document.getElementById('cfg-multitouch-enabled').checked,
+        MULTITOUCH_MESSAGE: document.getElementById('cfg-multitouch-message').value || 'Please use only one finger on the screen.',
+        INSTRUCTION_TEXTS: getInstructionTexts()
     };
 
     const statusEl = document.getElementById('config-status');
@@ -1276,6 +1340,7 @@ async function loadParticipantDashboard(pid) {
 
     try {
         allParticipantData = await api('GET', `/api/admin/participant/${pid}`);
+        document.getElementById('btn-download-pid').style.display = 'inline-block';
         renderDashboard();
     } catch (e) {
         console.error('Failed to load participant data:', e);
@@ -1484,38 +1549,107 @@ function renderDataTable(data) {
     }).join('');
 }
 
-// ═══ CHANGE PASSWORD ════════════════════════════════════════
+// ═══ SUB-TOGGLE VISIBILITY ═════════════════════════════════
+function updateSubToggleVisibility() {
+    const skipLR = document.getElementById('cfg-skip-late-release').checked;
+    document.getElementById('row-show-error-late-release').style.display = skipLR ? 'flex' : 'none';
 
-async function changePassword() {
-    const cur     = document.getElementById('pw-current').value;
-    const nw      = document.getElementById('pw-new').value;
-    const confirm = document.getElementById('pw-confirm').value;
-    const status  = document.getElementById('pw-status');
+    const skipFI = document.getElementById('cfg-skip-failed-inhibition').checked;
+    document.getElementById('row-show-error-failed-inhibition').style.display = skipFI ? 'flex' : 'none';
 
-    status.className = 'save-status';
-    status.textContent = '';
+    const mt = document.getElementById('cfg-multitouch-enabled').checked;
+    document.getElementById('row-multitouch-message').style.display = mt ? 'block' : 'none';
+}
 
-    if (nw !== confirm) {
-        status.className = 'save-status err';
-        status.textContent = 'New passwords do not match.';
-        return;
-    }
+document.getElementById('cfg-skip-late-release').addEventListener('change', updateSubToggleVisibility);
+document.getElementById('cfg-skip-failed-inhibition').addEventListener('change', updateSubToggleVisibility);
+document.getElementById('cfg-multitouch-enabled').addEventListener('change', updateSubToggleVisibility);
 
-    try {
-        await api('POST', '/api/admin/password', { currentPassword: cur, newPassword: nw });
-        status.className = 'save-status ok';
-        status.textContent = 'Password updated.';
-        document.getElementById('pw-current').value = '';
-        document.getElementById('pw-new').value     = '';
-        document.getElementById('pw-confirm').value = '';
-    } catch (e) {
-        status.className = 'save-status err';
-        status.textContent = e.message;
-    }
+// ═══ CSV DOWNLOAD ══════════════════════════════════════════
+function downloadAllCSV() {
+    fetch('/api/admin/export-csv')
+    .then(res => {
+        if (!res.ok) throw new Error('Download failed');
+        return res.blob();
+    })
+    .then(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'halt-all-participants.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+    })
+    .catch(e => console.error('CSV download error:', e));
+}
+
+function downloadPidCSV() {
+    if (!currentPid) return;
+    fetch(`/api/admin/participant/${currentPid}/csv`)
+    .then(res => {
+        if (!res.ok) throw new Error('Download failed');
+        return res.blob();
+    })
+    .then(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `halt-pid-${currentPid}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    })
+    .catch(e => console.error('CSV download error:', e));
+}
+
+// ═══ INSTRUCTION TEXT EDITOR ══════════════════════════════
+
+function loadInstructionFields(texts) {
+    const t = texts || {};
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+
+    set('instr-overview-title',    (t.overview  || {}).title      || '');
+    set('instr-overview-message',  (t.overview  || {}).message    || '');
+    set('instr-overview-btn',      (t.overview  || {}).buttonText || '');
+    set('instr-go-title',          (t.go        || {}).title      || '');
+    set('instr-go-message',        (t.go        || {}).message    || '');
+    set('instr-go-btn',            (t.go        || {}).buttonText || '');
+    set('instr-nogo-title',        (t.noGo      || {}).title      || '');
+    set('instr-nogo-message',      (t.noGo      || {}).message    || '');
+    set('instr-nogo-btn',          (t.noGo      || {}).buttonText || '');
+    set('instr-complete-title',    (t.complete  || {}).title      || '');
+    set('instr-complete-message',  (t.complete  || {}).message    || '');
+    set('instr-complete-btn',      (t.complete  || {}).buttonText || '');
+    set('instr-static-title',      (t.static    || {}).title      || '');
+    set('instr-static-body',       (t.static    || {}).body       || '');
+    set('instr-static-btn',        (t.static    || {}).buttonText || '');
+
+    // Populate all previews
+    ['overview-message', 'go-message', 'nogo-message', 'complete-message', 'static-body'].forEach(key => {
+        updatePreview(key, 'preview-' + key);
+    });
+}
+
+function getInstructionTexts() {
+    const val = id => (document.getElementById(id) || {}).value || '';
+    return {
+        overview: { title: val('instr-overview-title'), message: val('instr-overview-message'), buttonText: val('instr-overview-btn') },
+        go:       { title: val('instr-go-title'),       message: val('instr-go-message'),       buttonText: val('instr-go-btn') },
+        noGo:     { title: val('instr-nogo-title'),     message: val('instr-nogo-message'),     buttonText: val('instr-nogo-btn') },
+        complete: { title: val('instr-complete-title'), message: val('instr-complete-message'), buttonText: val('instr-complete-btn') },
+        static:   { title: val('instr-static-title'),   body: val('instr-static-body'),         buttonText: val('instr-static-btn') }
+    };
+}
+
+// Live HTML preview — renders the raw HTML value into the preview div
+function updatePreview(sourceId, previewId) {
+    const src = document.getElementById('instr-' + sourceId);
+    const prev = document.getElementById(previewId);
+    if (src && prev) prev.innerHTML = src.value;
 }
 
 // ═══ BOOT ════════════════════════════════════════════════════
-init();
+loadConfigForm();
+loadParticipants();
 </script>
 </body>
 </html>

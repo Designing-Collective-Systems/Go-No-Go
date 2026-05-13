@@ -5,8 +5,6 @@
 require('dotenv').config();
 const express = require('express');
 const { Pool } = require('pg');
-const bcrypt   = require('bcryptjs');
-const crypto   = require('crypto');
 const path     = require('path');
 
 const app  = express();
@@ -18,26 +16,7 @@ const pool = new Pool({
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname)));
 
-// ─── SESSION STORE ────────────────────────────────────────
-// Token -> expiry timestamp (ms). Restarting the server invalidates all sessions.
-const sessions = new Map();
 
-function generateToken() {
-    return crypto.randomBytes(32).toString('hex');
-}
-
-function isValidToken(token) {
-    if (!token || !sessions.has(token)) return false;
-    if (Date.now() > sessions.get(token)) { sessions.delete(token); return false; }
-    return true;
-}
-
-function auth(req, res, next) {
-    if (!isValidToken(req.headers['x-admin-token'])) {
-        return res.status(401).json({ error: 'Unauthorized.' });
-    }
-    next();
-}
 
 // ─── DEFAULT CONFIG ───────────────────────────────────────
 const DEFAULT_CONFIG = {
@@ -68,7 +47,43 @@ const DEFAULT_CONFIG = {
         { type: 'go',   delay: 3000, goPromptDelay: 2000, xFactor: 0,    yFactor: 0    },
         { type: 'go',   delay: 3000, goPromptDelay: 2500, xFactor: -0.5, yFactor: 0.5  },
         { type: 'nogo', delay: 3000, goPromptDelay: 2000, xFactor: 0.5,  yFactor: -0.5 }
-    ]
+    ],
+    TUTORIAL_ENABLED: true,
+    NOGO_HOLD_DURATION: 5000,
+    PENDING_PROMPT_TEXT: 'Hold...',
+    SKIP_ON_LATE_RELEASE: false,
+    SKIP_ON_FAILED_INHIBITION: false,
+    SHOW_ERROR_LATE_RELEASE: true,
+    SHOW_ERROR_FAILED_INHIBITION: true,
+    MULTITOUCH_ENABLED: false,
+    MULTITOUCH_MESSAGE: 'Please use only one finger on the screen.',
+    INSTRUCTION_TEXTS: {
+        overview: {
+            title: 'How This Task Works',
+            message: 'You\'ll press and hold a blue circle on the screen. You\'ll need to lift your finger when you see <strong>&quot;LIFT&quot;</strong> — then wait for a prompt before pressing again. You\'ll need to keep holding when you see <strong>&quot;HOLD&quot;</strong>.',
+            buttonText: 'Got it, let\'s start!'
+        },
+        go: {
+            title: 'Learning LIFT Trials',
+            message: 'You\'ll see a blue circle on the screen. When the word <strong>&quot;LIFT&quot;</strong> appears above the circle, lift your finger off the button as quickly as possible. Then wait — a prompt will appear saying &quot;HOLD&quot;. Press the circle again as fast as you can only when you see that prompt.',
+            buttonText: 'Ready to try it!'
+        },
+        noGo: {
+            title: 'Learning HOLD Trials',
+            message: 'Great job! Now when you see <strong>&quot;HOLD&quot;</strong> appear above the circle, keep holding the circle. Do NOT lift your finger.',
+            buttonText: 'Ready to try it!'
+        },
+        complete: {
+            title: 'Tutorial Complete!',
+            message: 'Excellent work! You now understand both <strong>LIFT</strong> and <strong>HOLD</strong> trials.<br>Ready to start practicing?',
+            buttonText: 'Start Practice'
+        },
+        static: {
+            title: 'How This Task Works',
+            body: '<p class="text-lg mb-4">You\'ll press and hold a blue circle on the screen.</p><p class="text-lg mb-4">When <strong>&quot;LIFT&quot;</strong> appears, lift your finger off the button as quickly as possible. Then wait for a prompt before pressing the circle again.</p><p class="text-lg mb-4">When <strong>&quot;HOLD&quot;</strong> appears, keep holding the circle. Do NOT lift your finger.</p><p class="text-lg mb-8">React as fast as you can while following the correct instruction.</p>',
+            buttonText: 'Got it!'
+        }
+    }
 };
 
 // ─── DB INIT ──────────────────────────────────────────────
@@ -98,13 +113,6 @@ async function initDB() {
             timestamp                   TIMESTAMPTZ,
             stimulus_onset_timestamp    TIMESTAMPTZ,
             session_start_time          TIMESTAMPTZ
-        );
-    `);
-
-    await pool.query(`
-        CREATE TABLE IF NOT EXISTS halt_admin (
-            id            SERIAL PRIMARY KEY,
-            password_hash TEXT NOT NULL
         );
     `);
 
@@ -182,64 +190,16 @@ app.post('/api/save-trial', async (req, res) => {
     }
 });
 
-// ─── ADMIN AUTH ───────────────────────────────────────────
+// ─── ADMIN DATA ROUTES ───────────────────────────────────
 
-app.get('/api/admin/has-password', async (req, res) => {
-    try {
-        const result = await pool.query('SELECT COUNT(*) AS cnt FROM halt_admin');
-        res.json({ hasPassword: parseInt(result.rows[0].cnt) > 0 });
-    } catch (err) { res.status(500).json({ error: 'DB error.' }); }
-});
-
-// Only works when no password exists yet
-app.post('/api/admin/setup', async (req, res) => {
-    const { password } = req.body;
-    if (!password || password.length < 8)
-        return res.status(400).json({ error: 'Password must be at least 8 characters.' });
-    try {
-        const existing = await pool.query('SELECT COUNT(*) AS cnt FROM halt_admin');
-        if (parseInt(existing.rows[0].cnt) > 0)
-            return res.status(403).json({ error: 'Password already set.' });
-        const hash = await bcrypt.hash(password, 12);
-        await pool.query('INSERT INTO halt_admin (password_hash) VALUES ($1)', [hash]);
-        res.json({ success: true });
-    } catch (err) { res.status(500).json({ error: 'DB error.' }); }
-});
-
-app.post('/api/admin/login', async (req, res) => {
-    const { password } = req.body;
-    if (!password) return res.status(400).json({ error: 'Password required.' });
-    try {
-        const result = await pool.query('SELECT password_hash FROM halt_admin LIMIT 1');
-        if (result.rowCount === 0)
-            return res.status(403).json({ error: 'No admin account set up yet.' });
-        const match = await bcrypt.compare(password, result.rows[0].password_hash);
-        if (!match) return res.status(401).json({ error: 'Incorrect password.' });
-        const token = generateToken();
-        sessions.set(token, Date.now() + 8 * 60 * 60 * 1000); // 8-hour session
-        res.json({ token });
-    } catch (err) { res.status(500).json({ error: 'DB error.' }); }
-});
-
-app.post('/api/admin/logout', (req, res) => {
-    sessions.delete(req.headers['x-admin-token']);
-    res.json({ success: true });
-});
-
-app.get('/api/admin/check', (req, res) => {
-    res.json({ valid: isValidToken(req.headers['x-admin-token']) });
-});
-
-// ─── ADMIN DATA ROUTES (auth required) ───────────────────
-
-app.get('/api/admin/config', auth, async (req, res) => {
+app.get('/api/admin/config', async (req, res) => {
     try {
         const result = await pool.query("SELECT value FROM halt_config WHERE key = 'task_config'");
         res.json(result.rowCount > 0 ? result.rows[0].value : DEFAULT_CONFIG);
     } catch (err) { res.status(500).json({ error: 'DB error.' }); }
 });
 
-app.post('/api/admin/config', auth, async (req, res) => {
+app.post('/api/admin/config', async (req, res) => {
     const cfg = req.body;
     if (!cfg || typeof cfg !== 'object') return res.status(400).json({ error: 'Invalid config.' });
     try {
@@ -252,23 +212,9 @@ app.post('/api/admin/config', auth, async (req, res) => {
     } catch (err) { res.status(500).json({ error: 'DB error.' }); }
 });
 
-app.post('/api/admin/password', auth, async (req, res) => {
-    const { currentPassword, newPassword } = req.body;
-    if (!newPassword || newPassword.length < 8)
-        return res.status(400).json({ error: 'New password must be at least 8 characters.' });
-    try {
-        const result = await pool.query('SELECT password_hash FROM halt_admin LIMIT 1');
-        if (result.rowCount === 0) return res.status(500).json({ error: 'No admin account found.' });
-        const match = await bcrypt.compare(currentPassword, result.rows[0].password_hash);
-        if (!match) return res.status(401).json({ error: 'Current password is incorrect.' });
-        const hash = await bcrypt.hash(newPassword, 12);
-        await pool.query('UPDATE halt_admin SET password_hash = $1', [hash]);
-        res.json({ success: true });
-    } catch (err) { res.status(500).json({ error: 'DB error.' }); }
-});
 
 // Participant list with summary stats per participant
-app.get('/api/admin/participants', auth, async (req, res) => {
+app.get('/api/admin/participants', async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT
@@ -294,7 +240,7 @@ app.get('/api/admin/participants', auth, async (req, res) => {
 });
 
 // All trials for one participant — camelCase keys match dashboard expectations
-app.get('/api/admin/participant/:pid', auth, async (req, res) => {
+app.get('/api/admin/participant/:pid', async (req, res) => {
     const pid = parseInt(req.params.pid);
     if (isNaN(pid)) return res.status(400).json({ error: 'Invalid PID.' });
     try {
@@ -324,6 +270,92 @@ app.get('/api/admin/participant/:pid', auth, async (req, res) => {
             FROM halt_trials WHERE pid = $1 ORDER BY id
         `, [pid]);
         res.json(result.rows);
+    } catch (err) { res.status(500).json({ error: 'DB error.' }); }
+});
+
+// Download CSV for a single participant
+app.get('/api/admin/participant/:pid/csv', async (req, res) => {
+    const pid = parseInt(req.params.pid);
+    if (isNaN(pid)) return res.status(400).json({ error: 'Invalid PID.' });
+    try {
+        const result = await pool.query(`
+            SELECT
+                pid, phase,
+                block_number, trial_index, trial_in_block,
+                trial_type, is_correct, result_type, error_category,
+                rt_release_ms, rt_down_ms, response_time_ms,
+                anticipatory_press_delay_ms, slip_duration_ms, recontact_time_ms,
+                trial_delay_ms, go_prompt_delay_ms, touch_x, touch_y,
+                timestamp, stimulus_onset_timestamp, session_start_time
+            FROM halt_trials WHERE pid = $1 ORDER BY id
+        `, [pid]);
+        const headers = [
+            'PID','Phase','Block','Trial Index','Trial in Block',
+            'Trial Type','Is Correct','Result Type','Error Category',
+            'RT-Release (ms)','RT-Down (ms)','Response Time (ms)',
+            'Anticipatory Press Delay (ms)','Slip Duration (ms)','Recontact Time (ms)',
+            'Trial Delay (ms)','Go Prompt Delay (ms)','Touch X','Touch Y',
+            'Timestamp','Stimulus Onset Timestamp','Session Start Time'
+        ];
+        let csv = headers.join(',') + '\n';
+        for (const r of result.rows) {
+            const row = [
+                r.pid, r.phase, r.block_number, r.trial_index, r.trial_in_block,
+                r.trial_type, r.is_correct, r.result_type, r.error_category,
+                r.rt_release_ms, r.rt_down_ms, r.response_time_ms,
+                r.anticipatory_press_delay_ms, r.slip_duration_ms, r.recontact_time_ms,
+                r.trial_delay_ms, r.go_prompt_delay_ms, r.touch_x, r.touch_y,
+                r.timestamp ? new Date(r.timestamp).toISOString() : '',
+                r.stimulus_onset_timestamp ? new Date(r.stimulus_onset_timestamp).toISOString() : '',
+                r.session_start_time ? new Date(r.session_start_time).toISOString() : ''
+            ].map(v => v == null ? '' : String(v));
+            csv += row.map(c => c.includes(',') || c.includes('"') ? '"' + c.replace(/"/g,'""') + '"' : c).join(',') + '\n';
+        }
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename="halt-pid-${pid}.csv"`);
+        res.send(csv);
+    } catch (err) { res.status(500).json({ error: 'DB error.' }); }
+});
+
+// Download CSV for ALL participants
+app.get('/api/admin/export-csv', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT
+                pid, phase,
+                block_number, trial_index, trial_in_block,
+                trial_type, is_correct, result_type, error_category,
+                rt_release_ms, rt_down_ms, response_time_ms,
+                anticipatory_press_delay_ms, slip_duration_ms, recontact_time_ms,
+                trial_delay_ms, go_prompt_delay_ms, touch_x, touch_y,
+                timestamp, stimulus_onset_timestamp, session_start_time
+            FROM halt_trials ORDER BY pid, id
+        `);
+        const headers = [
+            'PID','Phase','Block','Trial Index','Trial in Block',
+            'Trial Type','Is Correct','Result Type','Error Category',
+            'RT-Release (ms)','RT-Down (ms)','Response Time (ms)',
+            'Anticipatory Press Delay (ms)','Slip Duration (ms)','Recontact Time (ms)',
+            'Trial Delay (ms)','Go Prompt Delay (ms)','Touch X','Touch Y',
+            'Timestamp','Stimulus Onset Timestamp','Session Start Time'
+        ];
+        let csv = headers.join(',') + '\n';
+        for (const r of result.rows) {
+            const row = [
+                r.pid, r.phase, r.block_number, r.trial_index, r.trial_in_block,
+                r.trial_type, r.is_correct, r.result_type, r.error_category,
+                r.rt_release_ms, r.rt_down_ms, r.response_time_ms,
+                r.anticipatory_press_delay_ms, r.slip_duration_ms, r.recontact_time_ms,
+                r.trial_delay_ms, r.go_prompt_delay_ms, r.touch_x, r.touch_y,
+                r.timestamp ? new Date(r.timestamp).toISOString() : '',
+                r.stimulus_onset_timestamp ? new Date(r.stimulus_onset_timestamp).toISOString() : '',
+                r.session_start_time ? new Date(r.session_start_time).toISOString() : ''
+            ].map(v => v == null ? '' : String(v));
+            csv += row.map(c => c.includes(',') || c.includes('"') ? '"' + c.replace(/"/g,'""') + '"' : c).join(',') + '\n';
+        }
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename="halt-all-participants.csv"');
+        res.send(csv);
     } catch (err) { res.status(500).json({ error: 'DB error.' }); }
 });
 
