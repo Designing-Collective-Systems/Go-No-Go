@@ -137,12 +137,41 @@ async function initDB() {
     console.log('DB ready.');
 }
 
+// Deep-merge stored config over DEFAULT_CONFIG so any field added in a newer
+// version of the server fills in with its default value even when the DB row
+// was saved before that field existed.
+function mergeWithDefaults(stored) {
+    const out = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+    if (!stored || typeof stored !== 'object') return out;
+    for (const key of Object.keys(DEFAULT_CONFIG)) {
+        const def = DEFAULT_CONFIG[key];
+        const val = stored[key];
+        if (val == null) continue;
+        // For nested plain objects (like INSTRUCTION_TEXTS), merge one level deeper
+        if (def && typeof def === 'object' && !Array.isArray(def) && typeof val === 'object' && !Array.isArray(val)) {
+            out[key] = {};
+            for (const k2 of Object.keys(def)) {
+                out[key][k2] = (val[k2] != null && typeof def[k2] === 'object' && !Array.isArray(def[k2]))
+                    ? Object.assign({}, def[k2], val[k2])
+                    : (val[k2] != null ? val[k2] : def[k2]);
+            }
+            // Preserve any extra keys the user added
+            for (const k2 of Object.keys(val)) {
+                if (!(k2 in out[key])) out[key][k2] = val[k2];
+            }
+        } else {
+            out[key] = val;
+        }
+    }
+    return out;
+}
+
 // ─── PUBLIC ROUTES ────────────────────────────────────────
 
 app.get('/api/config', async (req, res) => {
     try {
         const result = await pool.query("SELECT value FROM halt_config WHERE key = 'task_config'");
-        res.json(result.rowCount > 0 ? result.rows[0].value : DEFAULT_CONFIG);
+        res.json(result.rowCount > 0 ? mergeWithDefaults(result.rows[0].value) : DEFAULT_CONFIG);
     } catch (err) {
         console.error('config error:', err);
         res.json(DEFAULT_CONFIG); // fall back on error so task still loads
@@ -195,7 +224,7 @@ app.post('/api/save-trial', async (req, res) => {
 app.get('/api/admin/config', async (req, res) => {
     try {
         const result = await pool.query("SELECT value FROM halt_config WHERE key = 'task_config'");
-        res.json(result.rowCount > 0 ? result.rows[0].value : DEFAULT_CONFIG);
+        res.json(result.rowCount > 0 ? mergeWithDefaults(result.rows[0].value) : DEFAULT_CONFIG);
     } catch (err) { res.status(500).json({ error: 'DB error.' }); }
 });
 

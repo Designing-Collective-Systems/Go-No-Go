@@ -1603,25 +1603,57 @@ function downloadPidCSV() {
 
 // ═══ INSTRUCTION TEXT EDITOR ══════════════════════════════
 
+// Defaults — used to pre-fill any missing/empty fields when loading config
+const DEFAULT_INSTRUCTION_TEXTS = {
+    overview: {
+        title: 'How This Task Works',
+        message: 'You\'ll press and hold a blue circle on the screen. You\'ll need to lift your finger when you see <strong>"LIFT"</strong> — then wait for a prompt before pressing again. You\'ll need to keep holding when you see <strong>"HOLD"</strong>.',
+        buttonText: 'Got it, let\'s start!'
+    },
+    go: {
+        title: 'Learning LIFT Trials',
+        message: 'You\'ll see a blue circle on the screen. When the word <strong>"LIFT"</strong> appears above the circle, lift your finger off the button as quickly as possible. Then wait — a prompt will appear saying "HOLD". Press the circle again as fast as you can only when you see that prompt.',
+        buttonText: 'Ready to try it!'
+    },
+    noGo: {
+        title: 'Learning HOLD Trials',
+        message: 'Great job! Now when you see <strong>"HOLD"</strong> appear above the circle, keep holding the circle. Do NOT lift your finger.',
+        buttonText: 'Ready to try it!'
+    },
+    complete: {
+        title: 'Tutorial Complete!',
+        message: 'Excellent work! You now understand both <strong>LIFT</strong> and <strong>HOLD</strong> trials.<br>Ready to start practicing?',
+        buttonText: 'Start Practice'
+    },
+    static: {
+        title: 'How This Task Works',
+        body: '<p class="text-lg mb-4">You\'ll press and hold a blue circle on the screen.</p><p class="text-lg mb-4">When <strong>"LIFT"</strong> appears, lift your finger off the button as quickly as possible. Then wait for a prompt before pressing the circle again.</p><p class="text-lg mb-4">When <strong>"HOLD"</strong> appears, keep holding the circle. Do NOT lift your finger.</p><p class="text-lg mb-8">React as fast as you can while following the correct instruction.</p>',
+        buttonText: 'Got it!'
+    }
+};
+
 function loadInstructionFields(texts) {
     const t = texts || {};
-    const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+    const D = DEFAULT_INSTRUCTION_TEXTS;
+    // Merge: use saved value if present, otherwise fall back to default
+    const pick = (group, key) => ((t[group] || {})[key]) || D[group][key] || '';
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
 
-    set('instr-overview-title',    (t.overview  || {}).title      || '');
-    set('instr-overview-message',  (t.overview  || {}).message    || '');
-    set('instr-overview-btn',      (t.overview  || {}).buttonText || '');
-    set('instr-go-title',          (t.go        || {}).title      || '');
-    set('instr-go-message',        (t.go        || {}).message    || '');
-    set('instr-go-btn',            (t.go        || {}).buttonText || '');
-    set('instr-nogo-title',        (t.noGo      || {}).title      || '');
-    set('instr-nogo-message',      (t.noGo      || {}).message    || '');
-    set('instr-nogo-btn',          (t.noGo      || {}).buttonText || '');
-    set('instr-complete-title',    (t.complete  || {}).title      || '');
-    set('instr-complete-message',  (t.complete  || {}).message    || '');
-    set('instr-complete-btn',      (t.complete  || {}).buttonText || '');
-    set('instr-static-title',      (t.static    || {}).title      || '');
-    set('instr-static-body',       (t.static    || {}).body       || '');
-    set('instr-static-btn',        (t.static    || {}).buttonText || '');
+    set('instr-overview-title',    pick('overview', 'title'));
+    set('instr-overview-message',  pick('overview', 'message'));
+    set('instr-overview-btn',      pick('overview', 'buttonText'));
+    set('instr-go-title',          pick('go',       'title'));
+    set('instr-go-message',        pick('go',       'message'));
+    set('instr-go-btn',            pick('go',       'buttonText'));
+    set('instr-nogo-title',        pick('noGo',     'title'));
+    set('instr-nogo-message',      pick('noGo',     'message'));
+    set('instr-nogo-btn',          pick('noGo',     'buttonText'));
+    set('instr-complete-title',    pick('complete', 'title'));
+    set('instr-complete-message',  pick('complete', 'message'));
+    set('instr-complete-btn',      pick('complete', 'buttonText'));
+    set('instr-static-title',      pick('static',   'title'));
+    set('instr-static-body',       pick('static',   'body'));
+    set('instr-static-btn',        pick('static',   'buttonText'));
 
     // Populate all previews
     ['overview-message', 'go-message', 'nogo-message', 'complete-message', 'static-body'].forEach(key => {
