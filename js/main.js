@@ -14,6 +14,9 @@ const CONFIG = {
     showErrorFailedInhibition: true,
     multitouchEnabled: false,
     multitouchMessage: 'Please use only one finger on the screen.',
+    goPromptText: 'LIFT',
+    goRecontactPromptText: 'HOLD',
+    nogoPromptText: 'HOLD',
 };
 
 
@@ -133,6 +136,9 @@ async function loadConfig() {
         CONFIG.showErrorFailedInhibition = cfg.SHOW_ERROR_FAILED_INHIBITION ?? CONFIG.showErrorFailedInhibition;
         CONFIG.multitouchEnabled    = cfg.MULTITOUCH_ENABLED ?? CONFIG.multitouchEnabled;
         CONFIG.multitouchMessage    = cfg.MULTITOUCH_MESSAGE ?? CONFIG.multitouchMessage;
+        CONFIG.goPromptText         = cfg.GO_PROMPT_TEXT ?? CONFIG.goPromptText;
+        CONFIG.goRecontactPromptText = cfg.GO_RECONTACT_PROMPT_TEXT ?? CONFIG.goRecontactPromptText;
+        CONFIG.nogoPromptText       = cfg.NOGO_PROMPT_TEXT ?? CONFIG.nogoPromptText;
         if (cfg.INSTRUCTION_TEXTS) {
             INSTRUCTION_TEXTS = Object.assign({}, INSTRUCTION_STEP_DEFAULTS, cfg.INSTRUCTION_TEXTS);
         }
@@ -546,14 +552,14 @@ function updateTutorialUI() {
         color = '#000000'; // BLACK
     } else if (trialState === 'stimulus') {
         if (step.trialType === 'go') {
-            text = 'LIFT';
+            text = CONFIG.goPromptText;
             // color = '#10b981'; // GREEN
         } else {
-            text = 'HOLD';
+            text = CONFIG.nogoPromptText;
             // color = '#ef4444'; // RED
         }
     } else if (trialState === 'released') {
-        text = 'HOLD';
+        text = CONFIG.goRecontactPromptText;
         // color = '#10b981'; // GREEN
     }
 
@@ -1437,17 +1443,17 @@ function updateUI() {
         color = '#000000'; // BLACK
     } else if (trialState === 'stimulus') {
         if (currentTrialConfig.type === 'go') {
-            text = 'LIFT';
+            text = CONFIG.goPromptText;
             // color = '#10b981'; // GREEN
         } else {
-            text = 'HOLD';
+            text = CONFIG.nogoPromptText;
             // color = '#ef4444'; // RED
         }
     } else if (trialState === 'go-delay') {
         text = '';
         color = '#000000';
     } else if (trialState === 'released') {
-        text = 'HOLD';
+        text = CONFIG.goRecontactPromptText;
         // color = '#10b981'; // GREEN
     } else if (trialState === 'feedback') {
         text = '';  // No feedback in practice/real sessions

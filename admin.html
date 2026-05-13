@@ -679,6 +679,93 @@
             margin-bottom: 4px;
         }
 
+        /* ── Login / Setup screen ── */
+        #auth-screen {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg);
+            z-index: 1000;
+        }
+        .auth-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 40px 36px;
+            width: 100%;
+            max-width: 380px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+        }
+        .auth-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 6px;
+        }
+        .auth-subtitle {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 24px;
+        }
+        .auth-field { margin-bottom: 14px; }
+        .auth-field label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+        .auth-field input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-strong);
+            border-radius: 6px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            color: var(--text);
+            background: var(--bg);
+            outline: none;
+        }
+        .auth-field input:focus { border-color: var(--accent); background: var(--surface); }
+        .auth-btn {
+            width: 100%;
+            padding: 11px;
+            border: none;
+            border-radius: 6px;
+            background: var(--accent);
+            color: white;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 6px;
+            transition: opacity 0.12s;
+        }
+        .auth-btn:hover { opacity: 0.9; }
+        .auth-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .auth-error {
+            font-size: 13px;
+            color: #c1272d;
+            margin-top: 10px;
+            min-height: 18px;
+        }
+        .logout-btn {
+            padding: 6px 14px;
+            border: 1px solid var(--border-strong);
+            border-radius: 6px;
+            background: none;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 12px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            margin-left: 12px;
+        }
+        .logout-btn:hover { border-color: var(--accent); color: var(--accent); }
+
         /* ── Download buttons ── */
         .btn-download {
             padding: 7px 16px;
@@ -696,13 +783,35 @@
 </head>
 <body>
 
+<!-- ═══ AUTH SCREEN ════════════════════════════════════════ -->
+<div id="auth-screen">
+    <div class="auth-card">
+        <div class="auth-title" id="auth-title">Admin Login</div>
+        <div class="auth-subtitle" id="auth-subtitle">Enter your password to continue.</div>
+
+        <div id="auth-confirm-field" class="auth-field" style="display:none;">
+            <label>Confirm Password</label>
+            <input type="password" id="auth-password-confirm" placeholder="Confirm password">
+        </div>
+
+        <div class="auth-field">
+            <label id="auth-password-label">Password</label>
+            <input type="password" id="auth-password" placeholder="Password" autofocus>
+        </div>
+
+        <button class="auth-btn" id="auth-submit" onclick="submitAuth()">Continue</button>
+        <div class="auth-error" id="auth-error"></div>
+    </div>
+</div>
+
 <!-- ═══ ADMIN PANEL ════════════════════════════════════════ -->
-<div id="admin-panel" style="min-height: 100vh;">
+<div id="admin-panel" style="min-height: 100vh; display: none;">
     <header class="admin-header">
         <div class="admin-logo">HALT <span>/ Admin</span></div>
         <nav class="tab-nav">
             <button class="tab-btn active" onclick="showTab('config')">Config</button>
             <button class="tab-btn" onclick="showTab('results')">Results</button>
+            <button class="logout-btn" onclick="logout()">Logout</button>
         </nav>
     </header>
 
@@ -839,6 +948,28 @@
             </div>
 
             <div class="section">
+                <div class="section-label">Trial Prompts</div>
+                <div class="hint" style="margin-bottom:14px;">Text shown above the circle during each trial state.</div>
+                <div class="form-grid">
+                    <div class="form-field">
+                        <label>LIFT Trial Prompt</label>
+                        <input type="text" id="cfg-go-prompt-text" value="LIFT">
+                        <div class="hint">Shown on go trials, signals participant to lift finger</div>
+                    </div>
+                    <div class="form-field">
+                        <label>LIFT Recontact Prompt</label>
+                        <input type="text" id="cfg-go-recontact-prompt-text" value="HOLD">
+                        <div class="hint">Shown after lifting, signals participant to press circle again</div>
+                    </div>
+                    <div class="form-field">
+                        <label>HOLD Trial Prompt</label>
+                        <input type="text" id="cfg-nogo-prompt-text" value="HOLD">
+                        <div class="hint">Shown on hold trials, signals participant to keep holding</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
                 <div class="section-label">Instructions</div>
 
                 <div class="instr-block">
@@ -926,6 +1057,29 @@
             <div class="action-row">
                 <button class="btn-save" onclick="saveConfig()">Save Configuration</button>
                 <span class="save-status" id="config-status"></span>
+            </div>
+
+            <div class="section">
+                <div class="section-label">Change Password</div>
+                <div class="form-grid">
+                    <div class="form-field">
+                        <label>Current Password</label>
+                        <input type="password" id="cfg-current-password" autocomplete="current-password">
+                    </div>
+                    <div class="form-field">
+                        <label>New Password</label>
+                        <input type="password" id="cfg-new-password" autocomplete="new-password">
+                        <div class="hint">Minimum 8 characters</div>
+                    </div>
+                    <div class="form-field">
+                        <label>Confirm New Password</label>
+                        <input type="password" id="cfg-confirm-password" autocomplete="new-password">
+                    </div>
+                </div>
+                <div class="action-row" style="margin-top:14px;">
+                    <button class="btn-save" onclick="changePassword()">Update Password</button>
+                    <span class="save-status" id="password-status"></span>
+                </div>
             </div>
 
         </div>
@@ -1058,12 +1212,27 @@
 </div>
 
 <script>
+// ═══ AUTH STATE ═════════════════════════════════════════════
+let TOKEN = localStorage.getItem('halt_admin_token') || '';
+
+function setToken(t) {
+    TOKEN = t || '';
+    if (TOKEN) localStorage.setItem('halt_admin_token', TOKEN);
+    else localStorage.removeItem('halt_admin_token');
+}
+
 // ═══ API HELPER ═════════════════════════════════════════════
 async function api(method, path, body) {
     const opts = { method, headers: { 'Content-Type': 'application/json' } };
+    if (TOKEN) opts.headers['X-Admin-Token'] = TOKEN;
     if (body) opts.body = JSON.stringify(body);
     const res = await fetch(path, opts);
     const data = await res.json();
+    if (res.status === 401) {
+        setToken('');
+        showAuthScreen();
+        throw new Error('Session expired. Please log in again.');
+    }
     if (!res.ok) throw new Error(data.error || 'Request failed');
     return data;
 }
@@ -1212,6 +1381,9 @@ async function loadConfigForm() {
         document.getElementById('cfg-show-error-failed-inhibition').checked = cfgData.SHOW_ERROR_FAILED_INHIBITION !== false;
         document.getElementById('cfg-multitouch-enabled').checked = !!cfgData.MULTITOUCH_ENABLED;
         document.getElementById('cfg-multitouch-message').value = cfgData.MULTITOUCH_MESSAGE || 'Please use only one finger on the screen.';
+        document.getElementById('cfg-go-prompt-text').value = cfgData.GO_PROMPT_TEXT || 'LIFT';
+        document.getElementById('cfg-go-recontact-prompt-text').value = cfgData.GO_RECONTACT_PROMPT_TEXT || 'HOLD';
+        document.getElementById('cfg-nogo-prompt-text').value = cfgData.NOGO_PROMPT_TEXT || 'HOLD';
         updateSubToggleVisibility();
 
         loadInstructionFields(cfgData.INSTRUCTION_TEXTS || {});
@@ -1273,6 +1445,9 @@ async function saveConfig() {
         SHOW_ERROR_FAILED_INHIBITION: document.getElementById('cfg-show-error-failed-inhibition').checked,
         MULTITOUCH_ENABLED: document.getElementById('cfg-multitouch-enabled').checked,
         MULTITOUCH_MESSAGE: document.getElementById('cfg-multitouch-message').value || 'Please use only one finger on the screen.',
+        GO_PROMPT_TEXT: document.getElementById('cfg-go-prompt-text').value || 'LIFT',
+        GO_RECONTACT_PROMPT_TEXT: document.getElementById('cfg-go-recontact-prompt-text').value || 'HOLD',
+        NOGO_PROMPT_TEXT: document.getElementById('cfg-nogo-prompt-text').value || 'HOLD',
         INSTRUCTION_TEXTS: getInstructionTexts()
     };
 
@@ -1567,7 +1742,7 @@ document.getElementById('cfg-multitouch-enabled').addEventListener('change', upd
 
 // ═══ CSV DOWNLOAD ══════════════════════════════════════════
 function downloadAllCSV() {
-    fetch('/api/admin/export-csv')
+    fetch('/api/admin/export-csv', { headers: { 'X-Admin-Token': TOKEN } })
     .then(res => {
         if (!res.ok) throw new Error('Download failed');
         return res.blob();
@@ -1585,7 +1760,7 @@ function downloadAllCSV() {
 
 function downloadPidCSV() {
     if (!currentPid) return;
-    fetch(`/api/admin/participant/${currentPid}/csv`)
+    fetch(`/api/admin/participant/${currentPid}/csv`, { headers: { 'X-Admin-Token': TOKEN } })
     .then(res => {
         if (!res.ok) throw new Error('Download failed');
         return res.blob();
@@ -1679,9 +1854,156 @@ function updatePreview(sourceId, previewId) {
     if (src && prev) prev.innerHTML = src.value;
 }
 
+// ═══ AUTH FLOW ═════════════════════════════════════════════
+let AUTH_MODE = 'login'; // 'login' or 'setup'
+
+async function initAuth() {
+    try {
+        const { hasPassword } = await fetch('/api/admin/has-password').then(r => r.json());
+        AUTH_MODE = hasPassword ? 'login' : 'setup';
+
+        if (AUTH_MODE === 'setup') {
+            document.getElementById('auth-title').textContent = 'Create Admin Password';
+            document.getElementById('auth-subtitle').textContent = 'First-time setup. Choose a password (minimum 8 characters).';
+            document.getElementById('auth-password-label').textContent = 'New Password';
+            document.getElementById('auth-confirm-field').style.display = 'block';
+            document.getElementById('auth-submit').textContent = 'Create Password';
+        }
+
+        // If we already have a token, verify it
+        if (TOKEN) {
+            const { valid } = await fetch('/api/admin/check', { headers: { 'X-Admin-Token': TOKEN } }).then(r => r.json());
+            if (valid) {
+                enterApp();
+                return;
+            }
+            setToken('');
+        }
+
+        showAuthScreen();
+    } catch (e) {
+        document.getElementById('auth-error').textContent = 'Cannot reach server. Please refresh.';
+        showAuthScreen();
+    }
+}
+
+function showAuthScreen() {
+    document.getElementById('auth-screen').style.display = 'flex';
+    document.getElementById('admin-panel').style.display = 'none';
+    setTimeout(() => document.getElementById('auth-password').focus(), 100);
+}
+
+function enterApp() {
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('admin-panel').style.display = 'block';
+    loadConfigForm();
+    loadParticipants();
+}
+
+async function submitAuth() {
+    const pw = document.getElementById('auth-password').value;
+    const err = document.getElementById('auth-error');
+    err.textContent = '';
+
+    if (!pw) { err.textContent = 'Password is required.'; return; }
+
+    const btn = document.getElementById('auth-submit');
+    btn.disabled = true;
+
+    try {
+        if (AUTH_MODE === 'setup') {
+            const confirm = document.getElementById('auth-password-confirm').value;
+            if (pw.length < 8) throw new Error('Password must be at least 8 characters.');
+            if (pw !== confirm) throw new Error('Passwords do not match.');
+            await fetch('/api/admin/setup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password: pw })
+            }).then(async r => {
+                const d = await r.json();
+                if (!r.ok) throw new Error(d.error || 'Setup failed.');
+            });
+            // After setup, log in
+            AUTH_MODE = 'login';
+        }
+        const res = await fetch('/api/admin/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: pw })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Login failed.');
+        setToken(data.token);
+        document.getElementById('auth-password').value = '';
+        document.getElementById('auth-password-confirm').value = '';
+        enterApp();
+    } catch (e) {
+        err.textContent = e.message;
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+// Allow pressing Enter on the password fields to submit
+document.getElementById('auth-password').addEventListener('keydown', e => {
+    if (e.key === 'Enter') submitAuth();
+});
+document.getElementById('auth-password-confirm').addEventListener('keydown', e => {
+    if (e.key === 'Enter') submitAuth();
+});
+
+async function logout() {
+    try {
+        await fetch('/api/admin/logout', {
+            method: 'POST',
+            headers: { 'X-Admin-Token': TOKEN }
+        });
+    } catch (e) { /* ignore */ }
+    setToken('');
+    showAuthScreen();
+}
+
+// ═══ CHANGE PASSWORD ═══════════════════════════════════════
+async function changePassword() {
+    const cur = document.getElementById('cfg-current-password');
+    const nw  = document.getElementById('cfg-new-password');
+    const cnf = document.getElementById('cfg-confirm-password');
+    const status = document.getElementById('password-status');
+    status.textContent = '';
+    status.style.color = '';
+
+    if (!cur.value || !nw.value || !cnf.value) {
+        status.textContent = 'All fields are required.';
+        status.style.color = '#c1272d';
+        return;
+    }
+    if (nw.value.length < 8) {
+        status.textContent = 'New password must be at least 8 characters.';
+        status.style.color = '#c1272d';
+        return;
+    }
+    if (nw.value !== cnf.value) {
+        status.textContent = 'New passwords do not match.';
+        status.style.color = '#c1272d';
+        return;
+    }
+
+    try {
+        await api('POST', '/api/admin/password', {
+            currentPassword: cur.value,
+            newPassword: nw.value
+        });
+        cur.value = ''; nw.value = ''; cnf.value = '';
+        status.textContent = 'Password updated successfully.';
+        status.style.color = 'var(--accent)';
+    } catch (e) {
+        status.textContent = e.message;
+        status.style.color = '#c1272d';
+    }
+}
+
 // ═══ BOOT ════════════════════════════════════════════════════
-loadConfigForm();
-loadParticipants();
+initAuth();
 </script>
 </body>
 </html>

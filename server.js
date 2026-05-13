@@ -5,6 +5,8 @@
 require('dotenv').config();
 const express = require('express');
 const { Pool } = require('pg');
+const bcrypt   = require('bcryptjs');
+const crypto   = require('crypto');
 const path     = require('path');
 
 const app  = express();
@@ -15,6 +17,27 @@ const pool = new Pool({
 
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname)));
+
+// ─── SESSION STORE ────────────────────────────────────────
+// Token -> expiry timestamp (ms). Restarting the server invalidates all sessions.
+const sessions = new Map();
+
+function generateToken() {
+    return crypto.randomBytes(32).toString('hex');
+}
+
+function isValidToken(token) {
+    if (!token || !sessions.has(token)) return false;
+    if (Date.now() > sessions.get(token)) { sessions.delete(token); return false; }
+    return true;
+}
+
+function auth(req, res, next) {
+    if (!isValidToken(req.headers['x-admin-token'])) {
+        return res.status(401).json({ error: 'Unauthorized.' });
+    }
+    next();
+}
 
 
 
@@ -57,6 +80,9 @@ const DEFAULT_CONFIG = {
     SHOW_ERROR_FAILED_INHIBITION: true,
     MULTITOUCH_ENABLED: false,
     MULTITOUCH_MESSAGE: 'Please use only one finger on the screen.',
+    GO_PROMPT_TEXT: 'LIFT',
+    GO_RECONTACT_PROMPT_TEXT: 'HOLD',
+    NOGO_PROMPT_TEXT: 'HOLD',
     INSTRUCTION_TEXTS: {
         overview: {
             title: 'How This Task Works',
@@ -113,6 +139,13 @@ async function initDB() {
             timestamp                   TIMESTAMPTZ,
             stimulus_onset_timestamp    TIMESTAMPTZ,
             session_start_time          TIMESTAMPTZ
+        );
+    `);
+
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS halt_admin (
+            id            SERIAL PRIMARY KEY,
+            password_hash TEXT NOT NULL
         );
     `);
 
@@ -219,16 +252,79 @@ app.post('/api/save-trial', async (req, res) => {
     }
 });
 
-// ─── ADMIN DATA ROUTES ───────────────────────────────────
+// ─── ADMIN AUTH ───────────────────────────────────────────
 
-app.get('/api/admin/config', async (req, res) => {
+app.get('/api/admin/has-password', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT COUNT(*) AS cnt FROM halt_admin');
+        res.json({ hasPassword: parseInt(result.rows[0].cnt) > 0 });
+    } catch (err) { res.status(500).json({ error: 'DB error.' }); }
+});
+
+// Only works when no password exists yet
+app.post('/api/admin/setup', async (req, res) => {
+    const { password } = req.body;
+    if (!password || password.length < 8)
+        return res.status(400).json({ error: 'Password must be at least 8 characters.' });
+    try {
+        const existing = await pool.query('SELECT COUNT(*) AS cnt FROM halt_admin');
+        if (parseInt(existing.rows[0].cnt) > 0)
+            return res.status(403).json({ error: 'Password already set.' });
+        const hash = await bcrypt.hash(password, 12);
+        await pool.query('INSERT INTO halt_admin (password_hash) VALUES ($1)', [hash]);
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: 'DB error.' }); }
+});
+
+app.post('/api/admin/login', async (req, res) => {
+    const { password } = req.body;
+    if (!password) return res.status(400).json({ error: 'Password required.' });
+    try {
+        const result = await pool.query('SELECT password_hash FROM halt_admin LIMIT 1');
+        if (result.rowCount === 0)
+            return res.status(403).json({ error: 'No admin account set up yet.' });
+        const match = await bcrypt.compare(password, result.rows[0].password_hash);
+        if (!match) return res.status(401).json({ error: 'Incorrect password.' });
+        const token = generateToken();
+        sessions.set(token, Date.now() + 8 * 60 * 60 * 1000); // 8-hour session
+        res.json({ token });
+    } catch (err) { res.status(500).json({ error: 'DB error.' }); }
+});
+
+app.post('/api/admin/logout', (req, res) => {
+    sessions.delete(req.headers['x-admin-token']);
+    res.json({ success: true });
+});
+
+app.get('/api/admin/check', (req, res) => {
+    res.json({ valid: isValidToken(req.headers['x-admin-token']) });
+});
+
+app.post('/api/admin/password', auth, async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+    if (!newPassword || newPassword.length < 8)
+        return res.status(400).json({ error: 'New password must be at least 8 characters.' });
+    try {
+        const result = await pool.query('SELECT password_hash FROM halt_admin LIMIT 1');
+        if (result.rowCount === 0) return res.status(500).json({ error: 'No admin account found.' });
+        const match = await bcrypt.compare(currentPassword, result.rows[0].password_hash);
+        if (!match) return res.status(401).json({ error: 'Current password is incorrect.' });
+        const hash = await bcrypt.hash(newPassword, 12);
+        await pool.query('UPDATE halt_admin SET password_hash = $1', [hash]);
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: 'DB error.' }); }
+});
+
+// ─── ADMIN DATA ROUTES (auth required) ───────────────────
+
+app.get('/api/admin/config', auth, async (req, res) => {
     try {
         const result = await pool.query("SELECT value FROM halt_config WHERE key = 'task_config'");
         res.json(result.rowCount > 0 ? mergeWithDefaults(result.rows[0].value) : DEFAULT_CONFIG);
     } catch (err) { res.status(500).json({ error: 'DB error.' }); }
 });
 
-app.post('/api/admin/config', async (req, res) => {
+app.post('/api/admin/config', auth, async (req, res) => {
     const cfg = req.body;
     if (!cfg || typeof cfg !== 'object') return res.status(400).json({ error: 'Invalid config.' });
     try {
@@ -243,7 +339,7 @@ app.post('/api/admin/config', async (req, res) => {
 
 
 // Participant list with summary stats per participant
-app.get('/api/admin/participants', async (req, res) => {
+app.get('/api/admin/participants', auth, async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT
@@ -269,7 +365,7 @@ app.get('/api/admin/participants', async (req, res) => {
 });
 
 // All trials for one participant — camelCase keys match dashboard expectations
-app.get('/api/admin/participant/:pid', async (req, res) => {
+app.get('/api/admin/participant/:pid', auth, async (req, res) => {
     const pid = parseInt(req.params.pid);
     if (isNaN(pid)) return res.status(400).json({ error: 'Invalid PID.' });
     try {
@@ -303,7 +399,7 @@ app.get('/api/admin/participant/:pid', async (req, res) => {
 });
 
 // Download CSV for a single participant
-app.get('/api/admin/participant/:pid/csv', async (req, res) => {
+app.get('/api/admin/participant/:pid/csv', auth, async (req, res) => {
     const pid = parseInt(req.params.pid);
     if (isNaN(pid)) return res.status(400).json({ error: 'Invalid PID.' });
     try {
@@ -347,7 +443,7 @@ app.get('/api/admin/participant/:pid/csv', async (req, res) => {
 });
 
 // Download CSV for ALL participants
-app.get('/api/admin/export-csv', async (req, res) => {
+app.get('/api/admin/export-csv', auth, async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT
